@@ -1,7 +1,7 @@
 {
   "name": "andb",
   "productName": "The Andb",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Simplest Database Migration Tool by ph4n4n",
   "main": "dist-electron/main.js",
   "scripts": {

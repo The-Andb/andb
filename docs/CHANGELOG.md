@@ -2,6 +2,17 @@
 
 All notable changes to the **andb-ui** project will be documented in this file.
 
+## [Released] - 2026-01-14 (v2.2.1)
+
+### ✨ UI & Branding Refinements
+
+- **Dynamic Versioning**: The application version is now automatically synchronized across all UI components (Splash Screen, About Modal).
+- **New Primary Home**: Updated all links and internal metadata to point to the new `The-Andb/andb` repository.
+- **License Update**: Officially transitioned to **GPL-3.0**.
+- **Sidebar Fix**: Resolved an issue where navigation items were clipped in vertical list mode.
+- **Landing Page Polish**: Fixed "black box" logo issue and improved text contrast in Light Mode.
+- **Project Settings Refactor**: Improved layout stability and fixed navigation bugs in the Project Settings view.
+
 ## [Released] - 2026-01-14 (v2.2.0)
 
 ### ✨ New & Improved

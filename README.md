@@ -31,10 +31,10 @@ Desktop application for andb-core database migration tool using Electron + Vue.j
 
 ## 📥 Download
 
-Latest Release: **v2.2.0**
+Latest Release: **v2.2.1**
 
-- **macOS (Apple Silicon)**: [The-Andb-2.2.0-arm64.dmg](https://github.com/The-Andb/andb/releases/download/v2.2.0/The-Andb-2.2.0-arm64.dmg)
-- **macOS (Portable ZIP)**: [The-Andb-2.2.0-arm64-mac.zip](https://github.com/The-Andb/andb/releases/download/v2.2.0/The-Andb-2.2.0-arm64-mac.zip)
+- **macOS (Apple Silicon)**: [The-Andb-2.2.1-arm64.dmg](https://github.com/The-Andb/andb/releases/download/v2.2.1/The-Andb-2.2.1-arm64.dmg)
+- **macOS (Portable ZIP)**: [The-Andb-2.2.1-arm64-mac.zip](https://github.com/The-Andb/andb/releases/download/v2.2.1/The-Andb-2.2.1-arm64-mac.zip)
 - [All Releases](https://github.com/The-Andb/andb/releases)
 
 ## 📦 Installation
