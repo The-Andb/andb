@@ -2,12 +2,16 @@
   <div class="fixed inset-0 bg-primary-900 flex items-center justify-center z-50">
     <div class="text-center">
       <!-- Logo -->
-      <div class="animate-pulse-slow">
-        <img 
-          src="/andb-logo.png" 
-          alt="The Andb Logo" 
-          class="w-64 h-auto mx-auto"
-        />
+      <div class="animate-pulse-slow mb-16">
+        <div class="flex items-center justify-center gap-4 mb-4">
+          <img 
+            src="/icon.png" 
+            alt="Andb Icon" 
+            class="w-20 h-auto"
+          />
+          <h3 class="text-5xl font-black text-white tracking-tighter">The Andb</h3>
+        </div>
+        <p class="text-xl font-bold text-primary-100 tracking-tight opacity-80">Keep Going. Keep Syncing.</p>
       </div>
       <!-- Loading Bar -->
       <div class="w-64 h-1.5 bg-primary-800 rounded-full mx-auto mb-8 overflow-hidden">
@@ -79,7 +83,7 @@ onMounted(() => {
       // Navigate to main app after splash
       setTimeout(() => {
         router.push('/')
-      }, 500)
+      }, 100)
     }
   }, 400)
 })

@@ -14,14 +14,14 @@
         >
           <img 
             src="/icon.png" 
-            alt="Andb" 
+            alt="The Andb" 
             class="rounded shadow-sm transition-all duration-300"
             :class="appStore.projectManagerMode ? 'w-5 h-5' : 'w-6 h-6'"
           />
           <span 
              class="font-black text-gray-900 dark:text-white hidden md:block tracking-tight transition-all duration-300"
              :class="appStore.projectManagerMode ? 'text-sm' : 'text-base'"
-          >Andb</span>
+          >The Andb</span>
         </div>
         
         <div class="flex flex-col min-w-0 justify-center">
