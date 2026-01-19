@@ -22,7 +22,9 @@ async function capture() {
         { name: 'settings', url: 'http://localhost:5173/#/settings' }
     ];
 
-    const outDir = path.join(__dirname, '../../andb-landing/screenshots');
+    const toDay = new Date();
+    const theDay = toDay.toISOString().split('T')[0];
+    const outDir = path.join(__dirname, '../../andb-landing/public/screenshots/', theDay);
     if (!fs.existsSync(outDir)) {
         fs.mkdirSync(outDir, { recursive: true });
     }

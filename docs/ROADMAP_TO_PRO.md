@@ -1,14 +1,21 @@
 # 🚀 ANDB "Go Pro" Roadmap
 
-Đây là bản kế hoạch chi tiết để nâng cấp `andb-ui` từ một tool cá nhân thành một sản phẩm commercial-ready. Kế hoạch được tái cấu trúc để ưu tiên sự ổn định (Stability) và tính năng thiết yếu cho môi trường Production.
+Đây là bản kế hoạch chi tiết để nâng cấp `The Andb` từ một tool cá nhân thành một sản phẩm commercial-ready. Kế hoạch được tái cấu trúc để ưu tiên sự ổn định (Stability) và tính năng thiết yếu cho môi trường Production.
+
+Last Updated: **Jan 2026**
+Current Status: **Transitioning to Phase 2**
+
+---
 
 ## 🏁 Phase 1: MySQL Solid Core (Release v1.0)
+
+**Timeline:** ✅ Completed
 
 _Mục tiêu: Đảm bảo app chạy mượt với MySQL/MariaDB, UX ngon nghẻ để release bản Community đầu tiên._
 
 ### 1.1 Integrity & Stability
 
-- [x] **Auto-Update System**: Setup `electron-builder` để app tự động update. (High Priority).
+- [x] **Auto-Update System**: Setup `electron-builder` để app tự động update.
 - [x] **Form Validation**: Validation chặt chẽ form Connection.
 - [x] **i18n Completeness**: Đảm bảo không còn key nào bị thiếu.
 
@@ -19,63 +26,90 @@ _Mục tiêu: Đảm bảo app chạy mượt với MySQL/MariaDB, UX ngon ngh�
 
 ---
 
-## 🐘 Phase 2: The PostgreSQL Expansion (Technical Heavy)
+## �️ Phase 2: MySQL Deep Dive & Architecture Hardening
 
-_Mục tiêu: Mở rộng Core Engine để support PostgreSQL. Đây là phase tốn nhiều effort nhất về backend._
+**Timeline:** 3 Weeks (Jan 20 - Feb 10, 2026)
 
-### 2.1 Core Logic Update (Backend) (Critical)
+_Mục tiêu: "Deep before Wide". Thay vì vội vã qua Postgres, ta sẽ hoàn thiện 100% tính năng cho MySQL để bán được cho MySQL Experts trước._
 
-- [ ] **Schema Adapter**: Viết lại Adapter để handle cấu trúc `Schema > Table` của Postgres.
-- [ ] **Data Types Mapping**: Map các type đặc thù (JSONB, Array, UUID, Enum) sang format chuẩn của ANDB.
-- [ ] **Function/Procedure Parser**: Parser riêng cho cú pháp PL/pgSQL (khác hẳn MySQL).
+### Week 1: Advanced Objects Support
 
-### 2.2 UI Integration
+- [ ] **Stored Procedures & Functions**:
+  - [ ] Parser để tách và hiển thị body của Procedure/Function.
+  - [ ] Logic so sánh (Compare) diff cho Procedure.
+- [ ] **Triggers & Events**:
+  - [ ] Support Trigger DDL.
+  - [ ] Support Scheduled Events (MySQL).
+- [ ] **Views**: Hoàn thiện logic view dependencies (View A gọi View B).
 
-- [ ] **Postgres Connection Form**: Default port 5432, thêm field `Schema` (default `public`).
-- [ ] **UI Testing**: Verify hiển thị cây thư mục với cấu trúc mới.
+### Week 2: Core Refactoring (The Abstraction)
 
----
+- [ ] **Abstract Core Engine**:
+  - [ ] Refactor code hiện tại đang dính chặt với `mysql` driver.
+  - [ ] Tạo interface `DatabaseAdapter` chuẩn chỉnh (Chuẩn bị cho Postgres ở Phase 3).
+  - [ ] Tách biệt hoàn toàn UI và Electron IPC logic.
 
-## 🚀 Phase 3: Power User Utility (Tính năng "Sát thủ")
+### Week 3: Performance & Reliability
 
-_Mục tiêu: Thêm các tính năng mà Dev/DevOps chuyên nghiệp bắt buộc phải có (SSH, SSL)._
-
-### 3.1 Connectivity Pro
-
-- [ ] **SSH Tunneling**:
-  - Form config SSH (Host, Port, User, Key/Pass).
-  - Tự động dựng tunnel khi connect.
-- [ ] **SSL/TLS Certificates**: UI để upload CA Certs. (Basic SSL checkbox available).
-
-### 3.2 Structure & Safety
-
-- [x] **Project/Workspace**: Gom nhóm Connection theo dự án.
-- [x] **Environment Tagging**: Label màu (Prod=Red, Dev=Green) để tránh thao tác nhầm trên Prod.
-- [ ] **Safe Mode**: Cảnh báo xác nhận 2 bước khi chạy query trên môi trường Production.
+- [ ] **Large Scale Test**:
+  - [ ] Test với 5,000+ tables (Giả lập môi trường Enterprise).
+  - [ ] Tối ưu Virtual Scroll cho Tree View và Data Grid.
+- [ ] **Smart Sync**:
+  - [ ] Cải thiện thuật toán diff để giảm false-positive.
 
 ---
 
-## 💎 Phase 4: Commercial & Enterprise (Bản thu tiền)
+## � Phase 3: The PostgreSQL Expansion
 
-_Mục tiêu: Giải quyết các bài toán quy mô lớn, dữ liệu phức tạp và làm việc nhóm._
+**Timeline:** 3 Weeks (Feb 11 - Mar 05, 2026)
 
-### 4.1 Data Management
+_Mục tiêu: Khi Core đã vững (Phase 2), việc plug thêm Postgres sẽ an toàn và ít bug hơn._
 
-- [ ] **Data Compare**: So sánh dữ liệu (Data Diff) giữa 2 bảng (dùng cho bảng Config, Lookup).
-- [ ] **Seed Data Generator**: Tạo dữ liệu giả để test.
+### 3.1 Core Adaptation
 
-### 4.2 Advanced Migration
+- [ ] **Postgres Adapter Implementation**: Implement interface đã define ở Phase 2.
+- [ ] **Schema Support**: Xử lý hierarchy `Database > Schema > Table`.
+- [ ] **Type Mapping**: Map các type đặc thù (JSONB, UUID, Array).
 
-- [ ] **Drift Detection (Manual)**: So sánh state hiện tại với snapshot lần cuối để phát hiện thay đổi ngoài luồng.
-- [ ] **Rollback Assistant**: Hỗ trợ generate script `DOWN` cơ bản (có cảnh báo rủi ro mất dữ liệu).
+### 3.2 Connectivity & Security 🔐
 
-### 4.3 Collaboration
-
-- [ ] **Shared Configuration**: Export/Import Connection config (có password protection hoặc exclude password) để share cho team.
+- [ ] **SSH Tunneling**: Implement `ssh2` connector.
+- [ ] **Transaction Guard**: Auto-commit OFF cho Production connections.
 
 ---
 
-## 🛠 Tech Tasks (Ongoing)
+## 💎 Phase 4: Commercial & Enterprise (Bản thu tiền) 🔐
 
-- [ ] **Refactor Architecture**: Tách rõ Layer UI và Core Logic (Chuẩn bị cho khả năng Port sang Web/Cloud trong tương lai).
-- [ ] **Unit Tests**: Viết test cho các hàm generate SQL critical để đảm bảo không sai cú pháp.
+**Timeline:** March 2026 onwards
+
+_Mục tiêu: Giải quyết các bài toán quy mô lớn, dữ liệu phức tạp và làm việc nhóm. Toàn bộ module này là Closed Source._
+
+### 4.0 Architecture Scalability
+
+- [ ] **Plugin/Module Architecture**: Thiết kế Dynamic Modules loading cho các tính năng Pro (để dễ dàng tách License).
+- [ ] **Virtual Scrolling**: Implement `ag-grid` hoặc `tanstack-virtual` cho Data Grid (Handle 1M+ rows).
+
+### 4.1 Data Management Tools 🔐
+
+- [ ] **Data Compare**:
+  - [ ] UI chọn Source Table & Target Table.
+  - [ ] Logic compare primary key & row hash.
+- [ ] **Seed Data Generator**: Generate dummy data (Faker.js integration).
+
+### 4.2 Advanced Migration 🔐
+
+- [ ] **Drift Detection**: Snapshot schema hiện tại -> JSON. Compare JSON cũ & mới.
+- [ ] **Rollback Assistant**: Simple text replacement regex để tạo script đảo ngược (Best effort).
+
+### 4.3 Collaboration 🔐
+
+- [ ] **Shared Configuration**:
+  - [ ] Export Connection -> Encrypted File.
+  - [ ] Import Connection flow.
+
+---
+
+## 🛠 Tech Tasks (Ongoing Maintenance)
+
+- [ ] **Refactor Architecture**: Tiếp tục tách code Vue component khỏi logic gọi DB trực tiếp.
+- [ ] **Unit Tests**: Add test cho `PostgresAdapter` mới viết.

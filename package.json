@@ -33,7 +33,7 @@
     "andb-core"
   ],
   "author": "ph4n4n",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/The-Andb/andb/issues"
@@ -119,6 +119,7 @@
     "electron-updater": "^6.6.2",
     "html-to-image": "^1.11.13",
     "lucide-vue-next": "^0.294.0",
+    "mermaid": "^11.12.2",
     "mysql2": "^3.15.3",
     "pinia": "^2.1.7",
     "prismjs": "^1.30.0",
