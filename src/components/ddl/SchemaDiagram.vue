@@ -84,7 +84,7 @@
     </div>
 
     <!-- Controls Toolbar -->
-    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl ring-1 ring-black/5 transition-all">
+    <div v-if="!isExporting" class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl ring-1 ring-black/5 transition-all">
         <!-- Zoom Group -->
         <div class="flex items-center px-2 py-1 border-r border-gray-100 dark:border-gray-800">
             <button @click="zoomOut" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-500 transition-all active:scale-90" title="Zoom Out"><Minus class="w-4 h-4" /></button>
@@ -167,7 +167,7 @@
     </div>
 
     <!-- Tip -->
-    <div class="absolute top-6 right-6 px-4 py-2 bg-gray-900/90 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-500">
+    <div v-if="!isExporting" class="absolute top-6 right-6 px-4 py-2 bg-gray-900/90 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-500">
         <MousePointer2 class="w-3.5 h-3.5" />
         Drag to pan • Scroll to zoom
     </div>
@@ -402,9 +402,9 @@ const exportAsPng = async () => {
     // Create watermark element
     const watermark = document.createElement('div')
     watermark.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: flex-end; font-family: sans-serif;">
-            <div style="font-size: 24px; font-weight: 900; color: #6366f1; letter-spacing: -1px;">ANDB</div>
-            <div style="font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 2px;">Interactive Schema Explorer</div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; font-family: sans-serif; opacity: 0.8;">
+            <div style="font-size: 16px; font-weight: 800; color: #6366f1; letter-spacing: -0.5px;">The Andb</div>
+            <div style="font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 2px; margin-top: 2px;">Schema Explorer</div>
         </div>
     `
     watermark.style.position = 'absolute'

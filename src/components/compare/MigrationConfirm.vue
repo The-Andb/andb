@@ -25,13 +25,7 @@
         </div>
       </div>
 
-      <!-- Floating Warning (Absolute Center) -->
-      <div v-if="showWarning" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:flex items-center gap-2 px-6 py-1.5 rounded-full bg-amber-50/95 dark:bg-amber-900 border border-amber-200 dark:border-amber-700/60 text-[11px] font-bold text-amber-700 dark:text-amber-400 shadow-md backdrop-blur-sm z-20 whitespace-normal max-w-[60%] text-center min-w-0">
-          <AlertTriangle class="w-3.5 h-3.5 shrink-0" />
-          <span class="truncate">{{ $t('migration.warning') }}</span>
-      </div>
-      
-      <!-- Actions -->
+       <!-- Actions -->
       <div class="flex items-center gap-2 shrink-0 z-30">
         <button
           type="button"
@@ -121,6 +115,10 @@
                  <span v-if="selectedItemName" class="ml-2 px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[10px] normal-case tracking-normal">
                     {{ selectedItemName }}
                  </span>
+                 <div v-if="showWarning" class="ml-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 text-[10px] font-bold text-amber-600 dark:text-amber-400 normal-case tracking-normal">
+                    <AlertTriangle class="w-3 h-3 shrink-0" />
+                    <span class="truncate max-w-[300px]">{{ $t('migration.warning') }}</span>
+                 </div>
                </span>
                <button 
                   v-if="sqlScript && !fetchingSql"

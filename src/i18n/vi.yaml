@@ -251,7 +251,6 @@ compare:
   fetchTooltip: 'Tải dữ liệu mới & So sánh'
   comparing: 'Đang so sánh'
   compare: 'So sánh'
-  runCompare: 'Chạy so sánh'
   runCompareTooltip: 'Chạy so sánh dữ liệu'
   summary: 'Tóm tắt'
   generatedScript: 'Script đồng bộ được tạo'

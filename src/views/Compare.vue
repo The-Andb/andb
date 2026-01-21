@@ -21,12 +21,12 @@
           </div>
         </div>
 
+     <!-- Right Actions & Controls -->
+     <div class="flex items-center gap-4">
+        <!-- View Mode Switch -->
         <div 
           v-if="!showMigrateModal"
-          class="flex items-center gap-3 p-1.5 rounded-2xl transition-all duration-300 shadow-sm"
-          :class="appStore.buttonStyle === 'full' 
-            ? 'bg-white/50 dark:bg-gray-950 border border-gray-200/50 dark:border-gray-800 backdrop-blur-sm dark:backdrop-blur-none shadow-sm ring-1 ring-black/5' 
-            : 'bg-transparent border-transparent px-0'"
+          class="flex items-center gap-3"
         >
           <!-- Segmented Control for View Mode -->
           <div 
@@ -66,16 +66,10 @@
           <button 
             @click="runComparison(true)" 
             :disabled="loading || !activePair"
-            class="hidden md:flex items-center justify-center font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-            :class="[
-              appStore.buttonStyle === 'full' ? 'px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-xl text-[11px] gap-2' : '',
-              appStore.buttonStyle === 'minimal' ? 'px-3 py-1.5 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg text-[10px] gap-2' : '',
-              appStore.buttonStyle === 'icons' ? 'w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50' : ''
-            ]"
-            title="$t('compare.fetchTooltip')"
+             class="hidden md:flex items-center justify-center p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all disabled:opacity-50"
+            :title="fetchButtonText"
           >
-            <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
-            <span v-if="appStore.buttonStyle !== 'icons'">{{ appStore.buttonStyle === 'full' ? $t('compare.fetchFromDB') : $t('compare.fetch') }}</span>
+            <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': loading }" />
           </button>
 
           <button 
@@ -83,18 +77,28 @@
             :disabled="loading || !activePair"
             class="flex items-center justify-center font-bold uppercase transition-all duration-300 disabled:opacity-50 disabled:grayscale"
             :class="[
-              appStore.buttonStyle === 'full' ? 'px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white rounded-xl text-[11px] tracking-widest shadow-lg shadow-primary-500/20 active:scale-95 gap-2' : '',
-              appStore.buttonStyle === 'minimal' ? 'px-4 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-[10px] tracking-wider active:scale-95 shadow-sm gap-2' : '',
-              appStore.buttonStyle === 'icons' ? 'w-11 h-11 bg-primary-500 text-white rounded-full shadow-lg shadow-primary-500/20 hover:scale-110 active:scale-95' : ''
+              appStore.buttonStyle === 'full' ? 'px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-xs tracking-wide shadow-md active:scale-95 gap-2' : '',
+              appStore.buttonStyle === 'minimal' ? 'px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-[10px] tracking-wider active:scale-95 shadow-sm gap-2' : '',
+              appStore.buttonStyle === 'icons' ? 'w-10 h-10 bg-primary-500 text-white rounded-full shadow-lg hover:scale-110 active:scale-95' : ''
             ]"
             :title="$t('compare.runCompareTooltip')"
           >
             <GitCompare v-if="!loading" class="w-4 h-4" />
             <RefreshCw v-else class="w-4 h-4 animate-spin" />
-            <span v-if="appStore.buttonStyle !== 'icons'">{{ loading ? $t('compare.comparing') : (appStore.buttonStyle === 'full' ? $t('compare.runCompare') : $t('compare.compare')) }}</span>
+            <span v-if="appStore.buttonStyle !== 'icons'">{{ loading ? $t('compare.comparing') : (appStore.buttonStyle === 'full' ? $t('compare.compare') : $t('compare.compare')) }}</span>
           </button>
-        </div>
-      </div>
+       </div>
+       
+       <!-- Console Toggle -->
+       <button 
+          @click="consoleStore.toggleVisibility()" 
+          class="p-2 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all border border-transparent"
+          :title="$t('console.toggle')"
+        >
+          <PanelBottom class="w-4 h-4" />
+        </button>
+     </div>
+   </div>
     </template>
         
         <!-- Comparison & Console Split -->
@@ -301,6 +305,7 @@
             <div class="flex-1 flex flex-col bg-white dark:bg-gray-950 relative min-w-0">
                <!-- Migration Overlay -->
                <MigrationConfirm
+                  v-if="showMigrateModal"
                   :is-open="showMigrateModal"
                   :loading="isMigrating"
                   :item="migratingItem"
@@ -380,6 +385,7 @@
                :results="allResults"
                :source-name="sourceName"
                :target-name="targetName"
+               v-model:active-type="selectedFilterType"
                @migrate="openMigrateModal"
              />
           </div>
@@ -486,6 +492,25 @@ onMounted(async () => {
 })
 
 const viewMode = ref<'list' | 'tree'>('list')
+
+const fetchButtonText = computed(() => {
+    if (loading.value) return t('schema.fetching')
+    
+    if (selectedItem.value) {
+        const type = selectedItem.value.type.toLowerCase()
+        let singularType = type.endsWith('s') ? type.slice(0, -1) : type
+        if (type === 'procedures') singularType = 'procedure'
+        return `FETCH THIS ${singularType.toUpperCase()}`
+    }
+    
+    // If category filtered
+    if (selectedFilterType.value && selectedFilterType.value !== 'all') {
+        return `FETCH ALL ${selectedFilterType.value.toUpperCase()}`
+    }
+
+    if (appStore.buttonStyle === 'full') return t('compare.fetchFromDB')
+    return t('compare.fetch')
+})
 
 
 
@@ -776,6 +801,7 @@ const runComparison = async (refresh: boolean = false) => {
 
 const selectItem = (item: any) => {
   selectedItem.value = item
+  showMigrateModal.value = false
 }
 
 const handleObjectSelected = (event: any) => {
@@ -1329,7 +1355,7 @@ watch(() => connectionPairsStore.selectedPairId, (newId) => {
     functionResults.value = []
     viewResults.value = []
     triggerResults.value = []
-    selectedItem.value = null
+    selectedItem.value = null // Resets detail view
     
     // Trigger local comparison on pair change
     runComparison(false)

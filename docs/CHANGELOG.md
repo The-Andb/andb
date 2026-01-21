@@ -2,7 +2,54 @@
 
 All notable changes to the **andb-ui** project will be documented in this file.
 
-## [Released] - 2026-01-14 (v2.2.1)
+## [2.3.0] - 2026-01-28
+
+### Added
+
+- **SQL Dump File Comparison**: Compare `.sql` dump files directly without live database connections. Perfect for offline analysis and reviewing schema changes from backups.
+- **DDL Type Filtering**: Filter comparison results by DDL type (Tables, Views, Procedures, Functions, Triggers, Events) in both tree and list views.
+- **Enhanced Schema Caching**: Improved sidebar schema loading with SQLite-backed persistence for faster startup times.
+- **Composable Architecture**: Refactored core comparison logic into reusable Vue composables (`useCompareCore`, `useComparisonFilter`).
+
+### Improved
+
+- **Comparison Performance**: Optimized comparison engine with better memory handling for large schemas (1000+ objects).
+- **Tree View Synchronization**: DDL type filters now synchronize between tree view and list view modes.
+- **Report Generation**: Reports now use embedded Highcharts and improved dark-mode aesthetics.
+
+### Fixed
+
+- **TypeScript Strict Mode**: Fixed all TypeScript errors for clean production builds.
+- **Sidebar Loading**: Fixed issue where DDLs were not loading in schema tab after dump file operations.
+- **Connection Persistence**: Improved handling of connection state across app restarts.
+
+### Changed
+
+- **Electron 34**: Upgraded from Electron 28 to 34 for macOS 26 (Tahoe) compatibility.
+- **Core 3.0.3**: Updated to latest @the-andb/core with improved test stability.
+
+---
+
+## [2.2.2] - 2026-01-19
+
+### ✨ UI/UX Refinements
+
+- **Refined Header Layout**:
+  - Unified the header design across `GlobalSchemaView` and `Compare` views.
+  - Aligned the "Console" toggle to the far right.
+  - Grouped action buttons (Fetch, Compare) to the right side for cleaner separation.
+  - Converted the "Fetch" button to a minimal icon-only style to reduce visual clutter.
+  - Removed redundant vertical separators in the toolbar.
+
+### 🚀 Functionality
+
+- **Compare View**:
+  - Added **DDL Type Filtering** (Tables, Views, Procedures, Functions, Triggers) to the Tree View mode.
+  - Synchronized filter state between List and Tree views to ensure consistency when switching modes.
+
+---
+
+## [2.2.1] - 2026-01-14
 
 ### ✨ UI & Branding Refinements
 
@@ -13,7 +60,9 @@ All notable changes to the **andb-ui** project will be documented in this file.
 - **Landing Page Polish**: Fixed "black box" logo issue and improved text contrast in Light Mode.
 - **Project Settings Refactor**: Improved layout stability and fixed navigation bugs in the Project Settings view.
 
-## [Released] - 2026-01-14 (v2.2.0)
+---
+
+## [2.2.0] - 2026-01-14
 
 ### ✨ New & Improved
 
@@ -26,33 +75,19 @@ All notable changes to the **andb-ui** project will be documented in this file.
 - **Zombie Project Fix**: Resolved a critical issue where duplicated projects inherited "System Protected" status (undeletable). Added auto-sanitization to fix existing corrupted projects on startup.
 - **Robust ID Generation**: Replaced UUID generator with a fail-safe implementation for reliable project creation/copying.
 
-### 🚧 Coming Soon
+---
 
-- **Project Focus Mode**: Explicitly marked as "In Development".
-- **Auto-Migration Engine**: Safe execution engine is being finalized.
+## [2.0.0] - 2025-12-26
 
-## [Released] - 2026-01-12
+### Added
 
-### ✨ Features
+- Initial public release
+- Electron + Vue 3 + TypeScript foundation
+- Integration with @the-andb/core
+- Basic export, compare, and migrate workflows
 
-- **Security & Portability**:
-  - **Master Password for Backups**: Implemented AES-256-CBC encryption for exported data, allowing for secure and portable backups with a user-defined password.
-  - **Immediate Invalidation**: Connected session data and in-memory passwords are now instantly cleared upon regenerating security keys for maximum privacy.
-- **Connection Management**:
-  - **Pull-Sync Architecture**: Project connections now automatically fetch and synchronize the latest credentials and host settings from their linked Global Templates upon view entry.
-  - **Automated Health Checks**: Added automatic connection testing when entering both Project Connection and Global Template management views.
-  - **Unified Actions UI**: Standardized connection test feedback with persistent, icon-based status indicators (Success/Failure/Testing) across the entire application.
-- **UI/UX Accessibility**:
-  - **Typography Pass**: Conducted a comprehensive font size audit in Settings, increasing minimum label sizes from 9px/10px to a more readable 12px/14px.
-  - **Table Refinement**: Improved the layout of connection lists with dedicated database columns and pill-style badges for better information density.
-
-### 🛠 Technical
-
-- **Security Service Integration**: Enhanced the Electron main process with dedicated IPC handlers for backup encryption/decryption.
-- **Reactive Synchronization**: Implemented reliable 'watch'-based auto-testing to handle asynchronous data loading in connection managers.
-- **Codebase Cleanup**: Removed obsolete synchronization actions and unused state variables to improve maintainability.
-
-### 🚀 Roadmap (Coming Soon)
-
-- **Project Focus Mode**: A distraction-free workspace mode for high-density connection management.
-- **One-Click Migration**: Automated execution of schema changes across environments (currently available as SQL preview for manual execution).
+[2.3.0]: https://github.com/The-Andb/andb/releases/tag/v2.3.0
+[2.2.2]: https://github.com/The-Andb/andb/releases/tag/v2.2.2
+[2.2.1]: https://github.com/The-Andb/andb/releases/tag/v2.2.1
+[2.2.0]: https://github.com/The-Andb/andb/releases/tag/v2.2.0
+[2.0.0]: https://github.com/The-Andb/andb/releases/tag/v2.0.0

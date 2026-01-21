@@ -22,45 +22,36 @@
           </div>
         </div>
 
-        <!-- Action Group -->
-        <div 
-          class="flex items-center gap-3 p-1.5 rounded-2xl transition-all duration-300 shadow-sm"
-          :class="appStore.buttonStyle === 'full' 
-            ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm ring-1 ring-black/5' 
-            : 'bg-transparent border-transparent px-0'"
-        >
-          <div v-if="error" class="text-red-500 text-[10px] font-bold uppercase tracking-wider max-w-[150px] truncate px-2" :title="error">{{ error }}</div>
-          
-          <div v-if="selectedDbLastUpdated" class="hidden sm:flex flex-col items-end px-2 border-r border-gray-200 dark:border-gray-700">
-            <span class="text-[9px] text-gray-400 uppercase tracking-tighter">{{ $t('schema.lastSynced') }}</span>
-            <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">{{ formatTimeAgo(selectedDbLastUpdated) }}</span>
-          </div>
+        <!-- Right Actions Area -->
+        <div class="flex items-center gap-4">
+           <!-- Fetch Group -->
+           <div class="flex items-center gap-3">
+              <div v-if="error" class="text-red-500 text-[10px] font-bold uppercase tracking-wider max-w-[150px] truncate px-2" :title="error">{{ error }}</div>
+              
+              <div v-if="selectedDbLastUpdated" class="hidden sm:flex flex-col items-end px-2 border-r border-gray-200 dark:border-gray-700">
+                <span class="text-[9px] text-gray-400 uppercase tracking-tighter">{{ $t('schema.lastSynced') }}</span>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">{{ formatTimeAgo(selectedDbLastUpdated) }}</span>
+              </div>
 
-          <button 
-            @click="loadSchema(true)" 
-            :disabled="loading || !selectedConnectionId"
-            class="flex items-center justify-center font-bold uppercase transition-all duration-300 disabled:opacity-50 disabled:grayscale"
-            :class="[
-              appStore.buttonStyle === 'full' ? 'px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white rounded-xl tracking-widest shadow-lg shadow-primary-500/20 active:scale-95 gap-2' : '',
-              appStore.buttonStyle === 'minimal' ? 'px-4 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg tracking-wider active:scale-95 shadow-sm gap-2' : '',
-              appStore.buttonStyle === 'icons' ? 'w-10 h-10 bg-primary-500 text-white rounded-full shadow-lg shadow-primary-500/20 hover:scale-110 active:scale-95' : ''
-            ]"
-            :style="{ fontSize: appStore.fontSizes.button + 'px' }"
-            :title="$t('schema.fetchTooltip')"
-          >
-            <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
-            <span v-if="appStore.buttonStyle !== 'icons'">{{ loading ? $t('schema.fetching') : (appStore.buttonStyle === 'full' ? $t('schema.fetchFromDB') : $t('schema.fetch')) }}</span>
-          </button>
-
-          <!-- System Logs Toggle -->
-          <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
-          <button 
-            @click="consoleStore.toggleVisibility()" 
-            class="p-2 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all border border-transparent"
-            :title="$t('console.toggle')"
-          >
-            <PanelBottom class="w-4 h-4" />
-          </button>
+              <button 
+                @click="loadSchema(true)" 
+                :disabled="loading || !selectedConnectionId"
+                class="p-2 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg transition-all disabled:opacity-50"
+                :title="fetchButtonText"
+              >
+                <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': loading }" />
+              </button>
+           </div>
+           
+           <!-- System Logs Toggle -->
+           
+           <button 
+              @click="consoleStore.toggleVisibility()" 
+              class="p-2 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all border border-transparent"
+              :title="$t('console.toggle')"
+            >
+              <PanelBottom class="w-4 h-4" />
+            </button>
         </div>
     </div>
     <!-- Main Content Area -->
@@ -185,10 +176,10 @@
             <!-- Right: DDL Viewer (Simplified MirrorDiffView) -->
             <div class="flex-1 bg-white dark:bg-gray-950 overflow-hidden flex flex-col relative">
               <div v-if="selectedItem" class="flex-1 flex flex-col overflow-hidden">
-                <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0">
-                  <div class="flex items-center overflow-hidden">
-                    <div class="p-2 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 mr-3">
-                      <component :is="getIconForType(selectedItem.type)" class="w-5 h-5" />
+                <div class="p-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0 h-14">
+                  <div class="flex items-center overflow-hidden gap-3">
+                    <div class="p-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400">
+                      <component :is="getIconForType(selectedItem.type)" class="w-4 h-4" />
                     </div>
                     <div class="min-w-0" v-if="selectedItem.type === 'diagrams'">
                       <h2 class="font-bold text-gray-900 dark:text-white truncate" :style="{ fontSize: appStore.fontSizes.ddlHeader + 'px' }">{{ $t('schema.visualDiagram') }}</h2>
@@ -206,40 +197,49 @@
                     </div>
                   </div>
                   
-                  <div class="flex items-center space-x-2" v-if="selectedItem.type !== 'diagrams'">
+                  <div class="flex items-center gap-2" v-if="selectedItem.type !== 'diagrams'">
+                     <!-- Tab Switcher for Tables -->
+                     <div v-if="selectedItem.type === 'tables' || selectedItem.type === 'table'" class="bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 flex mr-2">
+                      
+                        <button 
+                            @click="viewMode = 'visual'"
+                            class="px-2 py-1 text-[10px] font-bold rounded-md transition-all flex items-center gap-1.5 uppercase tracking-wider"
+                            :class="viewMode === 'visual' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+                        >
+                            <LayoutTemplate class="w-3 h-3" />
+                            Visual
+                        </button>
+
+                          <button 
+                            @click="viewMode = 'code'"
+                            class="px-2 py-1 text-[10px] font-bold rounded-md transition-all flex items-center gap-1.5 uppercase tracking-wider"
+                            :class="viewMode === 'code' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+                        >
+                            <Code2 class="w-3 h-3" />
+                            Code
+                        </button>
+                    </div>
+
                     <button 
                       @click="takeSnapshot"
                       :disabled="loading"
-                      class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
+                      class="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
                       title="Take Manual Snapshot"
                     >
                       <Camera class="w-4 h-4" />
                     </button>
                     <button 
                       @click="viewHistory"
-                      class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
+                      class="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
                       title="View Snapshots History"
                     >
                       <History class="w-4 h-4" />
                     </button>
-                    <button 
-                      @click="loadSchema(true)"
-                      :disabled="loading"
-                      class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
-                      title="Atomic Refresh"
-                    >
-                      <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
-                    </button>
-                    <button 
-                      @click="copyDDL"
-                      class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
-                      title="Copy DDL"
-                    >
-                      <Copy class="w-4 h-4" />
-                    </button>
+
+                    <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1"></div>
                     <button 
                       @click="downloadDDL"
-                      class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
+                      class="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
                       title="Download SQL"
                     >
                       <Download class="w-4 h-4" />
@@ -251,13 +251,22 @@
                   v-if="selectedItem.type === 'diagrams'"
                   :tables="schemaData.tables"
                 />
-                <DDLViewer 
-                  v-else
-                  :content="formattedDDL" 
-                  :font-size="appStore.fontSizes.code" 
-                  :font-family="appStore.fontFamilies.code"
-                />
-              </div>
+                
+                <template v-else>
+                    <DDLViewer 
+                        v-if="viewMode === 'code' || (selectedItem.type !== 'tables' && selectedItem.type !== 'table')"
+                        :content="formattedDDL" 
+                        :font-size="appStore.fontSizes.code" 
+                        :font-family="appStore.fontFamilies.code"
+                    />
+                    <div v-else class="flex-1 overflow-hidden bg-gray-50/50 dark:bg-gray-900/50 relative">
+                        <DDLVisualizer 
+                            :table-name="selectedItem.name"
+                            :columns="parsedColumns"
+                        />
+                    </div>
+                </template>
+                              </div>
               
               <div v-else class="flex-1 flex flex-col items-center justify-center p-12 text-center text-gray-400 grayscale opacity-40">
                 <div class="relative mb-6">
@@ -297,16 +306,18 @@ import {
   Zap,
   ChevronLeft,
   Search, 
-  Copy, 
   Download,
   Camera,
   RotateCcw,
   History,
   Network,
-  PanelBottom
+  PanelBottom,
+  Code2,
+  LayoutTemplate
 } from 'lucide-vue-next'
 import { useNotificationStore } from '@/stores/notification'
 import { useSidebarStore } from '@/stores/sidebar'
+import DDLVisualizer from '@/components/ddl/DDLVisualizer.vue'
 
 const appStore = useAppStore()
 const { t } = useI18n()
@@ -432,6 +443,188 @@ const formattedDDL = computed(() => {
 
 
 const hasResults = computed(() => allResults.value.length > 0)
+
+// Visual View Logic
+const fetchButtonText = computed(() => {
+    if (loading.value) return t('schema.fetching')
+    
+    if (selectedItem.value && selectedItem.value.type !== 'diagrams') {
+        const type = selectedItem.value.type.toLowerCase()
+        let singularType = type.endsWith('s') ? type.slice(0, -1) : type
+        if (type === 'procedures') singularType = 'procedure'
+        return `FETCH THIS ${singularType.toUpperCase()}`
+    }
+    
+    // If category filtered
+    if (selectedFilterType.value && selectedFilterType.value !== 'all') {
+        return `FETCH ALL ${selectedFilterType.value.toUpperCase()}`
+    }
+
+    if (appStore.buttonStyle === 'full') return t('schema.fetchFromDB')
+    return t('schema.fetch')
+})
+
+const viewMode = ref<'code' | 'visual'>('code')
+
+watch(selectedItem, () => {
+    // Reset to code view when finding a new item
+    // But default to visual if it's a TABLE and we prefer visual
+    if (selectedItem.value?.type === 'tables' || selectedItem.value?.type === 'table') {
+        viewMode.value = 'visual' 
+    } else {
+        viewMode.value = 'code'
+    }
+})
+
+// Visual Parsing Logic - Reuse from DDLDetailModal logic approximately
+interface Column {
+  name: string
+  type: string
+  pk?: boolean
+  notNull?: boolean
+  unique?: boolean
+  unsigned?: boolean
+  autoIncrement?: boolean
+  default?: string | null
+  comment?: string
+}
+
+const parsedColumns = computed(() => {
+    if (!formattedDDL.value) return []
+    return parseColumnsFromDDL(formattedDDL.value) || []
+})
+
+const parseColumnsFromDDL = (ddl: string): Column[] | null => {
+    if (!ddl) return null
+    if (!ddl.toUpperCase().includes('CREATE TABLE')) return null
+    
+    // Normalize logic
+    const content = ddl
+        .replace(/\n/g, ' ')
+        .replace(/\s+/g, ' ')
+    
+    // Simple regex for extracting inside parenthesis
+    const match = content.match(/CREATE TABLE.*?\((.*)\)(?:\s|$)/i) || content.match(/CREATE TABLE.*?\((.*)\)/i)
+    
+    if (!match) return null
+    
+    const body = match[1]
+    
+    // Improved split taking into account parentheses for types like DECIMAL(10,2) or ENUM('a','b')
+    // and ensuring we don't split inside comments
+    const parts: string[] = []
+    let current = ''
+    let parenLevel = 0
+    let inQuote = false
+    let quoteChar = ''
+    
+    for (let i = 0; i < body.length; i++) {
+        const char = body[i]
+        
+        if (inQuote) {
+            current += char
+            if (char === quoteChar && body[i-1] !== '\\') {
+                inQuote = false
+            }
+        } else {
+            if (char === "'" || char === '"' || char === '`') {
+                inQuote = true
+                quoteChar = char
+                current += char
+            } else if (char === '(') {
+                parenLevel++
+                current += char
+            } else if (char === ')') {
+                parenLevel--
+                current += char
+            } else if (char === ',' && parenLevel === 0) {
+                parts.push(current.trim())
+                current = ''
+            } else {
+                current += char
+            }
+        }
+    }
+    if (current.trim()) parts.push(current.trim())
+    
+    const columns: Column[] = []
+    const pkColumns = new Set<string>()
+    
+    for (const p of parts) {
+        if (!p) continue
+        
+        const up = p.toUpperCase()
+        
+        // Handle PRIMARY KEY Definitions (End of table)
+        if (up.startsWith('PRIMARY KEY') || (up.startsWith('CONSTRAINT') && up.includes('PRIMARY KEY'))) {
+            const pkMatch = p.match(/PRIMARY KEY\s*\((.*?)\)/i)
+            if (pkMatch) {
+                // Split composite keys
+                const cols = pkMatch[1].split(',').map(c => c.trim().replace(/^[`"]|[`"]$/g, ''))
+                cols.forEach(c => pkColumns.add(c))
+            }
+            continue
+        }
+
+        // Skip other keys definitions lines (starting with these keywords)
+        if (/^(KEY|UNIQUE KEY|CONSTRAINT|FOREIGN KEY|FULLTEXT|SPATIAL|INDEX)/i.test(p)) continue
+        
+        // Match column name (backticked or plain) and type
+        // Regex: start with optional backtick, capture name, optional backtick, whitespace, capture type (chars, digits, parens, dots for enum/set/decimal)
+        const colMatch = p.match(/^`?([a-zA-Z0-9_]+)`?\s+([a-zA-Z0-9_().,'"\s]+?)(?=\s|$)/)
+        
+        if (colMatch) {
+            const name = colMatch[1]
+            const fullType = colMatch[2]
+            
+            // Extract attributes
+            let isPk = up.includes('PRIMARY KEY')
+            if (isPk) pkColumns.add(name)
+
+            const isNotNull = up.includes('NOT NULL')
+            const isUnsigned = up.includes('UNSIGNED')
+            const isAutoInc = up.includes('AUTO_INCREMENT')
+            const isUnique = up.includes('UNIQUE')
+            
+            // Default value extraction
+            let defVal = null
+            const defMatch = p.match(/DEFAULT\s+('([^']*)'|([^,\s]+))/)
+            if (defMatch) {
+                defVal = defMatch[2] || defMatch[3]
+                if (defVal === 'NULL') defVal = 'NULL'
+            }
+            
+            // Comment extraction
+            let comment = ''
+            const commentMatch = p.match(/COMMENT\s+'([^']*)'/)
+            if (commentMatch) {
+                comment = commentMatch[1]
+            }
+
+            // Clean type (remove UNSIGNED etc if caught in type group)
+            let type = fullType.replace(/UNSIGNED/i, '').replace(/ZEROFILL/i, '').trim()
+            
+            columns.push({
+                name,
+                type,
+                pk: false, // Updated in return statement (see below)
+                notNull: isNotNull,
+                unique: isUnique,
+                unsigned: isUnsigned,
+                autoIncrement: isAutoInc,
+                default: defVal,
+                comment
+            })
+        }
+    }
+    
+    // Post-process to mark PKs
+    return columns.map(col => ({
+        ...col,
+        pk: pkColumns.has(col.name)
+    }))
+}
+
 
 const resultsByCategory = computed(() => {
   const categories = ['tables', 'views', 'procedures', 'functions', 'triggers']
@@ -712,16 +905,6 @@ const viewHistory = () => {
       env: conn.environment,
       name: selectedItem.value.name
     }
-  })
-}
-
-const copyDDL = () => {
-  if (!formattedDDL.value) return
-  navigator.clipboard.writeText(formattedDDL.value)
-  notificationStore.add({
-    type: 'success',
-    title: t('schema.copied'),
-    message: t('schema.copiedDesc')
   })
 }
 

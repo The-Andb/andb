@@ -23,7 +23,24 @@
       </div>
     </div>
     <!-- Filter Bar -->
-    <div class="flex items-center space-x-1 px-4 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 overflow-x-auto no-scrollbar">
+    <div class="flex items-center gap-1 px-4 py-1.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 overflow-x-auto no-scrollbar">
+      <!-- Type Filters -->
+      <div class="flex items-center gap-1 pr-2 mr-2 border-r border-gray-200 dark:border-gray-700">
+        <button 
+          v-for="tOpt in typeOptions" 
+          :key="tOpt.id"
+          @click="updateType(tOpt.id)"
+          class="p-1.5 rounded-lg transition-all flex items-center justify-center border border-transparent"
+          :class="activeType === tOpt.id
+            ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10' 
+            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'"
+          :title="tOpt.label"
+        >
+          <component :is="tOpt.icon" class="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <!-- Status Filters -->
       <button 
         v-for="f in filterOptions" 
         :key="f.id"
@@ -173,12 +190,27 @@ const props = defineProps<{
   results: any[]
   sourceName: string
   targetName: string
+  activeType: string
 }>()
 
 const emit = defineEmits<{
   (e: 'migrate', item: any): void
   (e: 'select', item: any): void
+  (e: 'update:activeType', type: string): void
 }>()
+
+const updateType = (type: string) => {
+  emit('update:activeType', type)
+}
+
+const typeOptions = [
+  { id: 'all', label: 'All Types', icon: Database },
+  { id: 'tables', label: 'Tables', icon: Table },
+  { id: 'views', label: 'Views', icon: Layers },
+  { id: 'procedures', label: 'Procedures', icon: Hammer },
+  { id: 'functions', label: 'Functions', icon: Hammer },
+  { id: 'triggers', label: 'Triggers', icon: Zap }
+]
 
 const collapsedCategories = ref(new Set<string>())
 const leftColWidth = ref(45) // Percentage
@@ -235,6 +267,11 @@ const getFilterCount = (filterId: string) => {
 const categories = computed(() => {
   const cats = ['tables', 'views', 'procedures', 'functions', 'triggers']
   return cats.map(type => {
+    // 0. Filter by type (if activeType is not all)
+    if (props.activeType !== 'all' && type !== props.activeType) {
+      return { type, items: [], diffCount: 0 }
+    }
+
     // 1. Get items for this category
     let items = props.results.filter(r => r.type === type)
     
