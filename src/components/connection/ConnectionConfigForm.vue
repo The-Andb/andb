@@ -59,13 +59,26 @@
             </div>
 
             <div class="space-y-2">
-                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ $t('connections.host') }} *</label>
-                <input 
-                    :value="modelValue.host" 
-                    @input="updateField('host', ($event.target as HTMLInputElement).value)"
-                    type="text" 
-                    class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none" 
-                />
+                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                    {{ modelValue.type === 'dump' ? $t('connections.dumpPath') : $t('connections.host') }} *
+                </label>
+                <div class="relative">
+                    <input 
+                        :value="modelValue.host" 
+                        @input="updateField('host', ($event.target as HTMLInputElement).value)"
+                        type="text" 
+                        :placeholder="modelValue.type === 'dump' ? $t('connections.dumpPathPlaceholder') : $t('connections.hostPlaceholder')"
+                        class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none" 
+                    />
+                    <button 
+                        v-if="modelValue.type === 'dump'" 
+                        @click="pickDumpFile"
+                        type="button"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 transition-colors"
+                    >
+                        <FolderOpen class="w-4 h-4" />
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-2">
@@ -151,7 +164,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChevronDown, Eye, EyeOff } from 'lucide-vue-next'
+import { ChevronDown, Eye, EyeOff, FolderOpen } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
     modelValue: any
@@ -160,6 +174,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:modelValue'])
+const { t: $t } = useI18n()
 
 const showPassword = ref(false)
 
@@ -168,5 +183,39 @@ const updateField = (key: string, value: any) => {
         ...props.modelValue,
         [key]: value
     })
+}
+
+const pickDumpFile = async () => {
+    try {
+        // 1. Try Electron API first
+        if ((window as any).electronAPI && (window as any).electronAPI.pickFile) {
+            const path = await (window as any).electronAPI.pickFile({
+                title: 'Select MySQL Dump File',
+                filters: [{ name: 'SQL Files', extensions: ['sql'] }]
+            })
+            if (path) updateField('host', path)
+            return
+        }
+
+        // 2. Fallback for Web/Browser mode
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = '.sql'
+        input.onchange = async (e: any) => {
+            const file = e.target.files[0]
+            if (file) {
+                // In browser mode, we use the file name as the path marker
+                updateField('host', file.name)
+                
+                // If this is a new template, we might also auto-fill name if empty
+                if (!props.modelValue.name) {
+                    updateField('name', file.name.replace('.sql', ''))
+                }
+            }
+        }
+        input.click()
+    } catch (error) {
+        console.error('Failed to pick file:', error)
+    }
 }
 </script>

@@ -61,6 +61,120 @@ export class AndbBuilder {
   // NEW: SQLiteStorage instance (shared across all operations)
   private static sqliteStorage: any = null
 
+  public static async getReportList() {
+    // We prefer JSON reports now
+    const fs = require('fs')
+    const path = require('path')
+    const reportDir = path.join(app.getPath('userData'), 'reports')
+    const jsonReportDir = path.join(reportDir, 'json')
+
+    let reports: any[] = []
+
+    // 1. Check for new JSON reports
+    if (fs.existsSync(jsonReportDir)) {
+      try {
+        const files = fs.readdirSync(jsonReportDir)
+        files.forEach((file: string) => {
+          if (file.endsWith('.json')) {
+            const stats = fs.statSync(path.join(jsonReportDir, file))
+            reports.push({
+              name: file, // Keep .json extension so getReportContent knows what to do
+              path: path.join(jsonReportDir, file),
+              size: stats.size,
+              mtime: stats.mtime
+            })
+          }
+        })
+      } catch (e) {
+        if ((global as any).logger) (global as any).logger.error('Error reading json reports directory', e)
+      }
+    }
+
+    // 2. Check for legacy HTML reports (optional, if we want backward compat)
+    /* 
+    if (fs.existsSync(reportDir)) {
+        // ... (existing logic)
+    }
+    */
+    // For now, let's just use JSON if available, or maybe merge them?
+    // User wants "switch approach", so let's focus on JSON.
+    // If no JSON reports, maybe list HTML for migration? But let's stick to JSON.
+
+    // Sort by modification time (newest first)
+    return reports.sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
+  }
+
+  public static async getReportContent(filename: string) {
+    const fs = require('fs')
+    const path = require('path')
+    // The previous implementation looked for HTML files in 'reports'
+    // The new implementation looks for JSON files in 'reports/json'
+    // filename coming in might be "dbname.env.json" or just a name.
+
+    // Let's assume the UI sends the full filename derived from getReportList
+    const reportDir = path.join(app.getPath('userData'), 'reports')
+
+    // Try to find the file. If it ends with .html, try to find the corresponding .json
+    // But since we are changing the paradigm, we should expect the UI to ask for JSON.
+    // However, legacy reports are HTML.
+
+    let filePath = path.join(reportDir, filename)
+
+    // If the request is for an HTML file, try to find the JSON version in the 'json' subdirectory
+    if (filename.endsWith('.html')) {
+      // Typically "dbname.env.html" -> we want "reports/json/dbname.env.json"
+      // But wait, the previous code saved HTML to 'reports/filename'.
+      // ReportHelper saves JSON to 'reports/json/dbname.env.json'.
+
+      // Let's try to infer the JSON path.
+      const basename = path.basename(filename, '.html');
+      // The new path should be reports/json/[basename].json
+      filePath = path.join(reportDir, 'json', `${basename}.json`)
+    } else {
+      // If it's already asking for something else, or if the list returns json files.
+      // Let's check if it is in json folder
+      if (fs.existsSync(path.join(reportDir, 'json', filename))) {
+        filePath = path.join(reportDir, 'json', filename);
+      }
+    }
+
+    // Security check
+    if (!filePath.startsWith(reportDir)) { // Basic check, realpath would be better but simple prefix check for now
+      return null;
+    }
+
+    if (fs.existsSync(filePath)) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8')
+        // Return parsed JSON if it is a json file, otherwise string
+        if (filePath.endsWith('.json')) {
+          return JSON.parse(content)
+        }
+        return content
+      } catch (e) {
+        if ((global as any).logger) (global as any).logger.error(`Failed to read report file ${filePath}`, e)
+        return null
+      }
+    }
+
+    return null
+  }
+
+  public static async deleteAllReports() {
+    const fs = require('fs')
+    const path = require('path')
+    const reportDir = path.join(app.getPath('userData'), 'reports')
+
+    if (!fs.existsSync(reportDir)) return
+
+    const files = fs.readdirSync(reportDir)
+    for (const file of files) {
+      if (file.endsWith('.html')) {
+        fs.unlinkSync(path.join(reportDir, file))
+      }
+    }
+  }
+
   public static async getDatabaseStats() {
     const storage = this.getSQLiteStorage()
     return await storage.getStats()
@@ -71,7 +185,7 @@ export class AndbBuilder {
    */
   public static getSQLiteStorage() {
     if (!this.sqliteStorage) {
-      const { SQLiteStorage } = require('@the-andb/core/core/utils/storage.strategy')
+      const { SQLiteStorage } = require('@the-andb/core')
       const dbPath = path.join(app.getPath('userData'), 'andb-storage.db')
       this.sqliteStorage = new SQLiteStorage(dbPath, app.getPath('userData'))
     }
@@ -117,13 +231,42 @@ export class AndbBuilder {
 
         if (!conn) return undefined
 
+        // Resolve path if it's relative
+        let host = conn.host
+        const fs = require('fs')
+        const isDump = (conn as any).type === 'dump' || (host && host.toLowerCase().endsWith('.sql')) || (host && host.includes('.sql'))
+
+        if ((global as any).logger) {
+          (global as any).logger.info(`[AndbBuilder] Resolving path: type=${(conn as any).type}, host=${host}, isDump=${isDump}`);
+        }
+
+        if (isDump && (host.startsWith('./') || !path.isAbsolute(host))) {
+          const appPath = app.getAppPath()
+          const directPath = path.resolve(appPath, host)
+          const publicPath = path.resolve(appPath, 'public', host)
+
+          if (fs.existsSync(directPath)) {
+            host = directPath
+          } else if (fs.existsSync(publicPath)) {
+            host = publicPath
+          } else {
+            // Fallback to direct path
+            host = directPath
+          }
+        }
+
+        if ((global as any).logger && isDump) {
+          (global as any).logger.info(`[AndbBuilder] Resolved Dump path: ${host} (Exists: ${fs.existsSync(host)})`);
+        }
+
         return {
           envName: conn.environment,
-          host: conn.host,
+          host: host,
           port: conn.port || 3306,
           database: mail ? undefined : conn.database,
           user: conn.username,
-          // Only include password if provided; omit empty string to avoid sending a blank password
+          type: isDump ? 'dump' : ((conn as any).type || 'mysql'), // Ensure Core uses 'dump' driver for .sql files
+          dumpPath: host,
           ...(conn.password ? { password: conn.password } : {})
         }
       },
@@ -257,6 +400,11 @@ export class AndbBuilder {
         isNotMigrateCondition: options.isNotMigrateCondition
       })
 
+      if ((global as any).logger) {
+        (global as any).logger.info(`[AndbBuilder] Executing ${operation}: ${sourceConn.name} (${sourceConn.environment}) -> ${targetConn?.name || 'None'} (${targetConn?.environment || 'None'})`);
+        (global as any).logger.info(`[AndbBuilder] Source Type: ${(sourceConn as any).type}, Host: ${sourceConn.host}, DB: ${sourceConn.database}`);
+      }
+
       // Initialize global logger
       try {
         let loggerInstance;
@@ -292,10 +440,16 @@ export class AndbBuilder {
 
         case 'compare':
           if (!targetConn) throw new Error('Target connection is required for comparison')
-          return await this.executeCompare(services, options, config, targetConn.environment)
+          return await this.executeCompare(services, options, config, targetConn.environment, sourceConn, targetConn)
 
         case 'migrate':
           if (!targetConn) throw new Error('Target connection is required for migration')
+
+          // DBA Rule: Cannot migrate into a static SQL Dump file
+          if ((targetConn as any).type === 'dump' || targetConn.host.includes('.sql')) {
+            throw new Error(`Migration forbidden: Target '${targetConn.name}' is a static SQL Dump file. You can only migrate INTO a live database server.`)
+          }
+
           return await this.executeMigrate(services, options, targetConn.environment, sourceConn)
 
         case 'generate':
@@ -344,7 +498,14 @@ export class AndbBuilder {
   /**
    * Execute compare operation
    */
-  private static async executeCompare(services: any, options: any, config: any, destEnv: string) {
+  private static async executeCompare(
+    services: any,
+    options: any,
+    config: any,
+    destEnv: string,
+    sourceConn: DatabaseConnection,
+    targetConn: DatabaseConnection
+  ) {
     const {
       type = 'tables',
       name = null
@@ -353,11 +514,25 @@ export class AndbBuilder {
     const ddlType = type.toLowerCase()
 
     try {
+      // PROACTIVE: If source or target is a dump, we MUST re-export (re-parse) to avoid stale cache
+      const srcEnv = config.getSourceEnv(destEnv)
+
+      if ((sourceConn as any).type === 'dump' || sourceConn.host.includes('.sql')) {
+        if ((global as any).logger) (global as any).logger.info(`[AndbBuilder] Auto-refreshing dump source: ${sourceConn.host}`)
+        await this.clearConnectionData(sourceConn)
+        await this.executeExport(services, { type: ddlType, environment: srcEnv, name })
+      }
+
+      if ((targetConn as any).type === 'dump' || targetConn.host.includes('.sql')) {
+        if ((global as any).logger) (global as any).logger.info(`[AndbBuilder] Auto-refreshing dump target: ${targetConn.host}`)
+        await this.clearConnectionData(targetConn)
+        await this.executeExport(services, { type: ddlType, environment: destEnv, name })
+      }
+
       const compareFn = services.comparator(ddlType, name)
       // Use destEnv passed from execute(), which should be the *aliased* name if applicable
       await compareFn(destEnv)
 
-      const srcEnv = config.getSourceEnv(destEnv)
       const dbName = config.getDBName(srcEnv)
 
       // Read and return results from SQLite
@@ -518,7 +693,15 @@ export class AndbBuilder {
    */
   static async clearConnectionData(connection: DatabaseConnection) {
     const storage = this.getSQLiteStorage()
-    await storage.clearDataForConnection(connection.environment, connection.database)
+    const result = await storage.clearDataForConnection(connection.environment, connection.database)
+
+    if ((global as any).logger) {
+      (global as any).logger.info(`[AndbBuilder] Cleared connection data for ${connection.environment}:${connection.database}`);
+      (global as any).logger.info(`[AndbBuilder]   - Deleted ${result.ddlCount} DDL records`);
+      (global as any).logger.info(`[AndbBuilder]   - Deleted ${result.comparisonCount} Comparison records`);
+    }
+
+    return result
   }
 
   /**

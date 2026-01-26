@@ -45,5 +45,10 @@ export default defineConfig({
       '@andb/core',
       'mysql2'
     ]
+  },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    include: ['src/**/*.unit.test.ts']
   }
 })

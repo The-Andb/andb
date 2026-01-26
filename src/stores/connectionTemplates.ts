@@ -10,7 +10,7 @@ export interface ConnectionTemplate {
   database?: string
   username: string
   password?: string
-  type: 'mysql' | 'postgres' | 'sqlite'
+  type: 'mysql' | 'postgres' | 'sqlite' | 'dump'
   createdAt: string
   updatedAt: string
 }

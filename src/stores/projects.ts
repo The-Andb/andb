@@ -2,6 +2,10 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { storage } from '../utils/storage-ipc'
 import type { Project } from '@/types/project'
+import { useAppStore } from './app'
+import { useConnectionPairsStore } from './connectionPairs'
+import { useConsoleStore } from './console'
+import { useOperationsStore } from './operations'
 
 
 export const useProjectsStore = defineStore('projects', () => {
@@ -93,6 +97,24 @@ export const useProjectsStore = defineStore('projects', () => {
     if (newId) {
       // @ts-ignore
       await storage.updateSettings({ lastSelectedProjectId: newId })
+
+      // DECOUPLING & INDEPENDENCE: Sync satellite stores
+      const appStore = useAppStore()
+      const connectionPairsStore = useConnectionPairsStore()
+      const consoleStore = useConsoleStore()
+      const operationsStore = useOperationsStore()
+
+      // 1. Reset Global Connection Selection (Prevents Schema Tab leaking)
+      appStore.selectedConnectionId = ''
+
+      // 2. Reset Active Compare Pair (Prevents Compare Tab leaking)
+      connectionPairsStore.selectPair('')
+
+      // 3. Clear Logs (Ensures fresh start for the new project context)
+      consoleStore.clearLogs()
+
+      // 4. Clear ongoing UI operations (Keep context clean)
+      operationsStore.clearOperations()
     }
   })
 
@@ -197,6 +219,136 @@ export const useProjectsStore = defineStore('projects', () => {
     })
   }
 
+  async function setupDemo() {
+    const appStore = useAppStore()
+    const connectionPairsStore = useConnectionPairsStore()
+
+    // 1. Check if Demo Project already exists to avoid duplicates
+    const existingDemo = projects.value.find(p => p.name === 'Andb Live Demo')
+    if (existingDemo) {
+      selectProject(existingDemo.id)
+      return connectionPairsStore.connectionPairs.find(p => existingDemo.pairIds.includes(p.id))
+    }
+
+    // 1. Create Demo Project
+    const demoProject = addProject({
+      name: 'Andb Live Demo',
+      description: 'Safe playground using SQL dump files',
+      connectionIds: [],
+      pairIds: [],
+      enabledEnvironmentIds: ['DEV', 'PROD']
+    })
+
+    // 2. Create Demo Connections
+    const sourceConn = appStore.addConnection({
+      name: 'Demo Source (SQL)',
+      host: './ui/public/demo/demo-source.sql',
+      port: 3306,
+      database: 'demo_source',
+      username: 'demo',
+      environment: 'DEV',
+      status: 'idle',
+      type: 'dump'
+    })
+
+    const targetConn = appStore.addConnection({
+      name: 'Demo Target (SQL)',
+      host: './ui/public/demo/demo-target.sql',
+      port: 3306,
+      database: 'demo_target',
+      username: 'demo',
+      environment: 'PROD',
+      status: 'idle',
+      type: 'dump'
+    })
+
+    // Link connections to demo project
+    demoProject.connectionIds = [sourceConn.id, targetConn.id]
+
+    // 3. Create Demo Pair
+    const demoPair = connectionPairsStore.addPair({
+      name: 'Demo Flow',
+      description: 'Compare source dump vs target dump',
+      sourceConnectionId: sourceConn.id,
+      targetConnectionId: targetConn.id,
+      sourceEnv: 'DEV',
+      targetEnv: 'PROD',
+      status: 'success',
+      isDefault: false
+    })
+
+    demoProject.pairIds = [demoPair.id]
+
+    // 4. Switch to Demo Project
+    selectProject(demoProject.id)
+
+    return demoPair
+  }
+
+  async function createQuickDumpPair(sourcePath: string, targetPath: string, name?: string) {
+    const appStore = useAppStore()
+    const connectionPairsStore = useConnectionPairsStore()
+
+    const projectName = name || `Quick Compare ${new Date().toLocaleTimeString()}`
+
+    // Extract file names for labels
+    const sourceFileName = sourcePath.split(/[/\\]/).pop() || 'Source'
+    const targetFileName = targetPath.split(/[/\\]/).pop() || 'Target'
+
+    // 1. Create Project
+    const quickProject = addProject({
+      name: projectName,
+      description: `Comparison between ${sourceFileName} and ${targetFileName}`,
+      connectionIds: [],
+      pairIds: [],
+      enabledEnvironmentIds: ['DEV', 'PROD']
+    })
+
+    // 2. Create Connections
+    const sourceConn = appStore.addConnection({
+      name: `Source: ${sourceFileName}`,
+      host: sourcePath,
+      port: 3306,
+      database: 'source',
+      username: 'dump',
+      environment: 'DEV',
+      status: 'idle',
+      type: 'dump'
+    })
+
+    const targetConn = appStore.addConnection({
+      name: `Target: ${targetFileName}`,
+      host: targetPath,
+      port: 3306,
+      database: 'target',
+      username: 'dump',
+      environment: 'PROD',
+      status: 'idle',
+      type: 'dump'
+    })
+
+    quickProject.connectionIds = [sourceConn.id, targetConn.id]
+
+    // 3. Create Pair
+    const quickPair = connectionPairsStore.addPair({
+      name: 'Migration Flow',
+      description: `${sourceFileName} → ${targetFileName}`,
+      sourceConnectionId: sourceConn.id,
+      targetConnectionId: targetConn.id,
+      sourceEnv: 'DEV',
+      targetEnv: 'PROD',
+      status: 'success',
+      isDefault: false
+    })
+
+    quickProject.pairIds = [quickPair.id]
+
+    // 4. Set context
+    selectProject(quickProject.id)
+
+    return quickPair
+  }
+
   return {
     projects,
     selectedProjectId,
@@ -208,6 +360,8 @@ export const useProjectsStore = defineStore('projects', () => {
     selectProject,
     addItemToProject,
     removeItemFromProject,
+    setupDemo,
+    createQuickDumpPair,
     reloadData: init,
     viewMode
   }

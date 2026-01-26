@@ -74,6 +74,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('database-cleanup', daysToKeep)
   },
 
+  getReportList: () => ipcRenderer.invoke('andb-get-report-list'),
+  getReportContent: (filename: string) => ipcRenderer.invoke('andb-get-report-content', filename),
+  deleteAllReports: () => ipcRenderer.invoke('andb-delete-all-reports'),
+
   // andb-core operations (new programmatic approach)
   andbExecute: (args: {
     sourceConnection: any
@@ -156,6 +160,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeAllListeners('update-status')
     }
   },
+
+  // File System Operations
+  pickFile: (options: any) => ipcRenderer.invoke('pick-file', options),
+  saveDumpFile: (sourcePath: string) => ipcRenderer.invoke('save-dump-file', sourcePath),
 
   // Generic invoke for dynamic calls
   invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args)

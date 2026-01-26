@@ -10,7 +10,7 @@
             <div class="relative flex-1">
                 <select
                 v-model="form.templateId"
-                class="w-full px-4 py-3 pl-10 text-sm border border-indigo-200 dark:border-indigo-800 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none outline-none font-medium"
+                class="w-full h-12 px-4 pl-10 text-sm border border-indigo-200 dark:border-indigo-800 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none outline-none font-bold leading-tight"
                 >
                 <option value="">{{ $t('connections.template.custom') }}</option>
                 <option v-for="t in templates" :key="t.id" :value="t.id">
@@ -94,7 +94,7 @@
           <div class="relative group">
             <select
               v-model="form.environment"
-              class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all appearance-none outline-none"
+              class="w-full h-12 px-4 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all appearance-none outline-none font-bold leading-tight"
               :class="{ 'border-red-500 ring-4 ring-red-500/10': errors.environment }"
             >
               <option value="">{{ $t('common.select') }}</option>
@@ -127,9 +127,10 @@
              <select
               v-model="form.type"
               :disabled="isInherited"
-              class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all appearance-none outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              class="w-full h-12 px-4 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all appearance-none outline-none disabled:opacity-50 disabled:cursor-not-allowed font-bold leading-tight"
             >
               <option value="mysql">{{ $t('connections.types.mysql') }}</option>
+              <option value="dump">{{ $t('connections.types.dump') }}</option>
               <option value="postgres" disabled>{{ $t('connections.types.postgres') }}</option>
               <option value="sqlite" disabled>{{ $t('connections.types.sqlite') }}</option>
             </select>
@@ -139,22 +140,32 @@
         </div>
 
         <div class="space-y-2">
-          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ $t('connections.host') }} *</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+            {{ form.type === 'dump' ? $t('connections.dumpPath') : $t('connections.host') }} *
+          </label>
           <div class="relative">
             <input
                 v-model="form.host"
                 type="text"
                 :disabled="isInherited"
-                :placeholder="$t('connections.hostPlaceholder')"
-                class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                :placeholder="form.type === 'dump' ? $t('connections.dumpPathPlaceholder') : $t('connections.hostPlaceholder')"
+                class="w-full h-12 px-4 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800 font-bold leading-tight"
                 :class="{ 'border-red-500 ring-4 ring-red-500/10': errors.host }"
             />
+            <button 
+              v-if="form.type === 'dump' && !isInherited" 
+              @click="pickDumpFile"
+              type="button"
+              class="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 transition-colors"
+            >
+              <FolderOpen class="w-4 h-4" />
+            </button>
             <Lock v-if="isInherited" class="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           </div>
           <p v-if="errors.host" class="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{{ errors.host }}</p>
         </div>
 
-        <div class="space-y-2">
+        <div v-if="form.type !== 'dump'" class="space-y-2">
           <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ $t('connections.port') }} *</label>
           <div class="relative">
             <input
@@ -162,7 +173,7 @@
                 type="number"
                 :disabled="isInherited"
                 :placeholder="$t('connections.portPlaceholder')"
-                class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                class="w-full h-12 px-4 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800 font-bold leading-tight"
                 :class="{ 'border-red-500 ring-4 ring-red-500/10': errors.port }"
             />
              <Lock v-if="isInherited" class="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
@@ -170,19 +181,19 @@
           <p v-if="errors.port" class="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{{ errors.port }}</p>
         </div>
 
-        <div class="space-y-2">
+        <div v-if="form.type !== 'dump'" class="space-y-2">
           <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ $t('connections.database') }} *</label>
           <input
             v-model="form.database"
             type="text"
             :placeholder="$t('connections.databasePlaceholder')"
-            class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+            class="w-full h-12 px-4 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none font-bold leading-tight"
             :class="{ 'border-red-500 ring-4 ring-red-500/10': errors.database }"
           />
           <p v-if="errors.database" class="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{{ errors.database }}</p>
         </div>
 
-        <div class="space-y-2">
+        <div v-if="form.type !== 'dump'" class="space-y-2">
           <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ $t('connections.username') }} *</label>
           <div class="relative">
             <input
@@ -190,7 +201,7 @@
                 type="text"
                 :disabled="isInherited"
                 :placeholder="$t('connections.usernamePlaceholder')"
-                class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                class="w-full h-12 px-4 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800 font-bold leading-tight"
                 :class="{ 'border-red-500 ring-4 ring-red-500/10': errors.username }"
             />
             <Lock v-if="isInherited" class="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
@@ -198,7 +209,7 @@
           <p v-if="errors.username" class="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{{ errors.username }}</p>
         </div>
 
-        <div class="space-y-2">
+        <div v-if="form.type !== 'dump'" class="space-y-2">
           <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{{ $t('connections.password') }}</label>
           <div class="relative">
             <input
@@ -206,7 +217,7 @@
               :type="showPassword ? 'text' : 'password'"
               :disabled="isInherited"
               :placeholder="isInherited ? '••••••••' : $t('connections.passwordPlaceholder')"
-              class="w-full px-4 py-3 pr-12 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800"
+              class="w-full h-12 px-4 pr-12 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800 font-bold leading-tight"
             />
              <Lock v-if="isInherited" class="absolute right-12 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             <button
@@ -228,7 +239,7 @@
               v-model.number="form.timeout"
               type="number"
               placeholder="30"
-              class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+              class="w-full h-12 px-4 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none font-bold leading-tight"
             />
             <p class="text-[9px] text-gray-500 font-bold uppercase tracking-tight ml-1 opacity-60">{{ $t('connections.timeoutInSeconds') }}</p>
           </div>
@@ -370,7 +381,8 @@ import {
   Unlink,
   Lock,
   Check,
-  X
+  X,
+  FolderOpen
 } from 'lucide-vue-next'
 import { useConnectionPairsStore } from '@/stores/connectionPairs'
 import { useConnectionTemplatesStore } from '@/stores/connectionTemplates'
@@ -504,7 +516,7 @@ const confirmcreateTemplate = () => {
     database: form.value.database,
     username: form.value.username,
     password: form.value.password,
-    type: form.value.type as 'mysql' | 'postgres' | 'sqlite'
+    type: form.value.type as 'mysql' | 'postgres' | 'sqlite' | 'dump'
   }
 
   try {
@@ -541,8 +553,12 @@ const validateForm = () => {
     errors.value.database = $t('validation.required', { field: $t('connections.database') })
   }
   
-  if (!form.value.username.trim()) {
+  if (form.value.type !== 'dump' && !form.value.username.trim()) {
     errors.value.username = $t('validation.required', { field: $t('connections.username') })
+  }
+
+  if (form.value.type === 'dump' && !form.value.host.trim()) {
+    errors.value.host = $t('validation.required', { field: $t('connections.dumpPath') })
   }
   
   if (!form.value.environment) {
@@ -563,6 +579,12 @@ const validateForm = () => {
     //   environment: !!form.value.environment
     // })
     
+    if (form.value.type === 'dump') {
+      return form.value.name.trim() !== '' && 
+             form.value.host.trim() !== '' && 
+             !!form.value.environment
+    }
+
     return form.value.name.trim() !== '' && 
            form.value.host.trim() !== '' && 
            form.value.port > 0 && 
@@ -603,6 +625,40 @@ const testConnection = async () => {
   }
 }
 
+const pickDumpFile = async () => {
+    try {
+        // 1. Try Electron API first
+        if ((window as any).electronAPI && (window as any).electronAPI.pickFile) {
+            const path = await (window as any).electronAPI.pickFile({
+                title: 'Select MySQL Dump File',
+                filters: [{ name: 'SQL Files', extensions: ['sql'] }]
+            })
+            if (path) form.value.host = path
+            return
+        }
+
+        // 2. Fallback for Web/Browser mode
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = '.sql'
+        input.onchange = async (e: any) => {
+            const file = e.target.files[0]
+            if (file) {
+                // In browser mode, we use the file name as the path marker
+                form.value.host = file.name
+                
+                // If this is a new connection, we might also auto-fill name if empty
+                if (!form.value.name) {
+                    form.value.name = file.name.replace('.sql', '')
+                }
+            }
+        }
+        input.click()
+    } catch (error) {
+        console.error('Failed to pick file:', error)
+    }
+}
+
 // Save connection
 const saveConnection = async () => {
   if (!validateForm()) return
@@ -619,7 +675,7 @@ const saveConnection = async () => {
       password: form.value.password || undefined,
       environment: form.value.environment as 'DEV' | 'STAGE' | 'UAT' | 'PROD',
       status: 'testing',
-      type: form.value.type as 'mysql' | 'postgres' | 'sqlite',
+      type: form.value.type as 'mysql' | 'postgres' | 'sqlite' | 'dump',
       templateId: form.value.templateId || undefined
     }
     

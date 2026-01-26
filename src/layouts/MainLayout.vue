@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen flex flex-col pt-0 bg-gray-50 dark:bg-gray-900" :style="{ fontSize: appStore.fontSizes.main + 'px', fontFamily: appStore.fontFamilies.general }">
+  <div class="h-screen flex flex-col pt-0 bg-white dark:bg-gray-900" :style="{ fontSize: appStore.fontSizes.main + 'px', fontFamily: appStore.fontFamilies.general }">
     <!-- Global Header -->
     <Header />
 

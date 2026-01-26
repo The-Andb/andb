@@ -4,12 +4,30 @@
       <div class="flex items-center justify-between w-full h-full gap-4">
         <!-- Title & Status -->
         <div class="flex items-center gap-4">
-          <div class="flex flex-col gap-0.5">
-            <h1 class="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center">
-              <Folder class="w-5 h-5 mr-3 text-primary-500" />
-              {{ currentProject?.name || $t('dashboard.title') }}
-            </h1>
-            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] opacity-60">
+          <div class="flex flex-col gap-0.5 items-start">
+            <div class="flex items-center group">
+              <Folder class="w-5 h-5 mr-3 text-primary-500 shrink-0" />
+              <input
+                v-if="isEditingName"
+                v-model="tempName"
+                @blur="saveProjectName"
+                @keyup.enter="saveProjectName"
+                @keyup.escape="cancelEdit"
+                v-focus
+                type="text"
+                class="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight bg-transparent border-b-2 border-primary-500 outline-none px-0 py-0 w-auto min-w-[100px]"
+                :style="{ width: (tempName.length || 1) + 'ch' }"
+              />
+              <h1 
+                v-else 
+                @click="startEditing"
+                class="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight cursor-text hover:text-primary-500 transition-colors flex items-center gap-2 group-hover:translate-x-1 transition-transform"
+              >
+                {{ currentProject?.name || $t('dashboard.title') }}
+                <Edit3 class="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+              </h1>
+            </div>
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] opacity-60 ml-8">
               {{ $t('dashboard.projectDashboard') }}
             </p>
           </div>
@@ -31,6 +49,19 @@
                     <span class="text-[10px] font-black uppercase tracking-widest hidden sm:inline">{{ $t('common.switch') }}</span>
                 </div>
             </button>
+
+            <!-- Reports Button -->
+            <button 
+                @click="showReportsModal = true"
+                class="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 px-3 py-1.5 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-500/50 dark:hover:border-indigo-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/5 hover:-translate-y-0.5 active:translate-y-0 active:scale-95"
+                :title="$t('dashboard.reports')"
+            >
+                <div class="flex items-center gap-2 relative z-10">
+                    <FileText class="w-3.5 h-3.5" />
+                    <span class="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Reports</span>
+                </div>
+            </button>
+
 
             <!-- Settings Button -->
             <button 
@@ -318,6 +349,7 @@
         </div>
       </div>
     </main>
+    <ReportsViewer :is-open="showReportsModal" @close="showReportsModal = false" />
   </MainLayout>
 </template>
 
@@ -335,9 +367,12 @@ import {
   Clock,
   ArrowRightLeft,
   LayoutGrid,
-  Settings
+  Settings,
+  FileText,
+  Edit3
 } from 'lucide-vue-next'
 import MainLayout from '@/layouts/MainLayout.vue'
+import ReportsViewer from '@/components/reports/ReportsViewer.vue'
 import { useAppStore } from '@/stores/app'
 import { useProjectsStore } from '@/stores/projects'
 import { useConnectionPairsStore } from '@/stores/connectionPairs'
@@ -350,8 +385,35 @@ const connectionPairsStore = useConnectionPairsStore()
 const operationsStore = useOperationsStore()
 
 const isRefreshing = ref(false)
+const showReportsModal = ref(false)
 
 const currentProject = computed(() => projectsStore.currentProject)
+
+// Project Name Editing
+const isEditingName = ref(false)
+const tempName = ref('')
+
+const startEditing = () => {
+  tempName.value = currentProject.value?.name || ''
+  isEditingName.value = true
+}
+
+const cancelEdit = () => {
+  isEditingName.value = false
+}
+
+const saveProjectName = async () => {
+  if (!isEditingName.value) return
+  if (tempName.value.trim() && currentProject.value) {
+    projectsStore.updateProject(currentProject.value.id, { name: tempName.value.trim() })
+  }
+  isEditingName.value = false
+}
+
+// Custom directive for auto-focus
+const vFocus = {
+  mounted: (el: HTMLInputElement) => el.focus()
+}
 
 const displayedConnections = computed(() => {
   if (!currentProject.value) return []

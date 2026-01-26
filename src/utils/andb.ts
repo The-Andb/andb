@@ -241,11 +241,11 @@ export class Andb {
   /**
    * Clear connection data (force reload)
    */
-  static async clearConnectionData(connection: DatabaseConnection): Promise<boolean> {
+  static async clearConnectionData(connection: DatabaseConnection): Promise<any> {
     if (!isElectron) return false
     try {
       const result = await window.electronAPI.andbClearConnectionData(this.sanitize(connection))
-      return result.success
+      return result.success ? result.data : false
     } catch (error) {
       return false
     }

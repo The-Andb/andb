@@ -9,10 +9,84 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useUpdaterStore } from '@/stores/updater'
+import { useConsoleStore } from '@/stores/console'
+import { useNotificationStore } from '@/stores/notification'
+import { useSidebarStore } from '@/stores/sidebar'
+import Andb from '@/utils/andb'
+import { useI18n } from 'vue-i18n'
 import UpdateModal from '@/components/general/UpdateModal.vue'
 
 const appStore = useAppStore()
 const updaterStore = useUpdaterStore()
+const consoleStore = useConsoleStore()
+const notificationStore = useNotificationStore()
+const sidebarStore = useSidebarStore()
+const { t } = useI18n()
+
+// Global Refresh Handlers
+const handleDatabaseRefreshRequested = async (e: any) => {
+  const { env, db } = e.detail
+  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  if (!conn) return
+
+  try {
+    consoleStore.addLog(`Global Refresh: Full database ${db}`, 'info')
+    consoleStore.setVisibility(true)
+    
+    // Clear data first for full refresh
+    await Andb.clearConnectionData(conn)
+    
+    // Fetch all types
+    const objTypes = ['tables', 'procedures', 'functions', 'triggers', 'views']
+    await Promise.all(objTypes.map(type => 
+       Andb.export(conn, null as any, { type: type as any, environment: conn.environment })
+         .then(res => consoleStore.addLog(`Fetched ${res.data?.length || 0} ${type}`, 'success'))
+    ))
+    
+    sidebarStore.triggerRefresh()
+    notificationStore.add({ type: 'success', title: 'Refreshed', message: `Database ${db} refreshed successfully` })
+  } catch (err: any) {
+    consoleStore.addLog(`Refresh failed: ${err.message}`, 'error')
+  }
+}
+
+const handleCategoryRefreshRequested = async (e: any) => {
+  const { type, env, db } = e.detail
+  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  if (!conn) return
+
+  try {
+    consoleStore.addLog(`Global Refresh: Category ${type} in ${db}`, 'info')
+    consoleStore.setVisibility(true)
+    
+    await Andb.export(conn, null as any, { type: type as any, environment: conn.environment })
+      .then(res => consoleStore.addLog(`Fetched ${res.data?.length || 0} ${type}`, 'success'))
+    
+    sidebarStore.triggerRefresh()
+    notificationStore.add({ type: 'success', title: 'Refreshed', message: `${type} refreshed successfully` })
+  } catch (err: any) {
+    consoleStore.addLog(`Refresh failed: ${err.message}`, 'error')
+  }
+}
+
+const handleObjectRefreshRequested = async (e: any) => {
+  const { name, type, env, db } = e.detail
+  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  if (!conn) return
+
+  try {
+    consoleStore.addLog(`Global Refresh: Object ${name} (${type})`, 'info')
+    consoleStore.setVisibility(true)
+    
+    await Andb.export(conn, null as any, { type: type as any, environment: conn.environment, name })
+      .then(res => consoleStore.addLog(`Fetched ${name}`, 'success'))
+      
+    sidebarStore.triggerRefresh()
+    notificationStore.add({ type: 'success', title: 'Refreshed', message: `${name} updated` })
+  } catch (err: any) {
+    consoleStore.addLog(`Refresh failed: ${err.message}`, 'error')
+  }
+}
 
 // Global keyboard shortcuts
 const handleKeydown = (event: KeyboardEvent) => {
@@ -26,6 +100,11 @@ const handleKeydown = (event: KeyboardEvent) => {
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   
+  // global refresh listeners
+  window.addEventListener('database-refresh-requested', handleDatabaseRefreshRequested)
+  window.addEventListener('category-refresh-requested', handleCategoryRefreshRequested)
+  window.addEventListener('object-refresh-requested', handleObjectRefreshRequested)
+  
   // Listen for Electron Updater events
   if (window.electronAPI?.updater) {
     window.electronAPI.updater.onUpdateStatus((response: any) => {
@@ -38,6 +117,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
+  
+  window.removeEventListener('database-refresh-requested', handleDatabaseRefreshRequested)
+  window.removeEventListener('category-refresh-requested', handleCategoryRefreshRequested)
+  window.removeEventListener('object-refresh-requested', handleObjectRefreshRequested)
   if (window.electronAPI?.updater) {
     window.electronAPI.updater.offUpdateStatus()
   }

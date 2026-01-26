@@ -156,7 +156,14 @@ export const useProjectNavigation = () => {
               type: 'pair_object',
               description: res.status,
               isTerminal: true,
-              rawData: { ...res, pair, sourceLabel: sourceConn.name, targetLabel: targetConn.name }
+              rawData: {
+                ...res,
+                pair,
+                sourceLabel: sourceConn.name,
+                targetLabel: targetConn.name,
+                sourceIsDump: sourceConn.type === 'dump',
+                targetIsDump: targetConn.type === 'dump'
+              }
             }))
           }
         } catch (e) {

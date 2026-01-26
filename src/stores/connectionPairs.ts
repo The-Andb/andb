@@ -281,6 +281,8 @@ export const useConnectionPairsStore = defineStore('connectionPairs', () => {
     const pair = connectionPairs.value.find(p => p.id === pairId)
     if (pair) {
       selectedPairId.value = pairId
+    } else {
+      selectedPairId.value = ''
     }
   }
 
@@ -480,6 +482,7 @@ export const useConnectionPairsStore = defineStore('connectionPairs', () => {
     updateEnvironment,
     removeEnvironment,
     addConnectionPair,
+    addPair: addConnectionPair,
     updateConnectionPair,
     removeConnectionPair,
     setDefaultPair,

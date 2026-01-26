@@ -14,8 +14,14 @@ import {
   ChevronRight,
   LayoutGrid,
   List as LayoutList,
-  Copy
+  Copy,
+  Play,
+  Loader,
+  Check,
+  X
 } from 'lucide-vue-next'
+import QuickDumpPairModal from './QuickDumpPairModal.vue'
+import BulkDeleteConfirmModal from './BulkDeleteConfirmModal.vue'
 
 const projectsStore = useProjectsStore()
 
@@ -83,14 +89,89 @@ const toggleMenu = (id: string) => {
   activeMenuId.value = activeMenuId.value === id ? null : id
 }
 
+const isDemoSettingUp = ref(false)
+const handleSetupDemo = async () => {
+  if (isDemoSettingUp.value) return
+  isDemoSettingUp.value = true
+  try {
+    await projectsStore.setupDemo()
+    emit('open', projectsStore.selectedProjectId!)
+  } catch (error) {
+    console.error('Failed to setup demo:', error)
+  } finally {
+    isDemoSettingUp.value = false
+  }
+}
+
+// Selection Logic
+const selectedIds = ref<string[]>([])
+const isSelectionMode = computed(() => selectedIds.value.length > 0)
+
+const toggleSelection = (id: string) => {
+  if (selectedIds.value.includes(id)) {
+    selectedIds.value = selectedIds.value.filter(i => i !== id)
+  } else {
+    selectedIds.value.push(id)
+  }
+}
+
+const toggleSelectAll = () => {
+  if (selectedIds.value.length === filteredProjects.value.length) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = filteredProjects.value.map(p => p.id)
+  }
+}
+
+const isBulkDeleteModalOpen = ref(false)
+const projectsToDelete = computed(() => {
+  return projectsStore.projects.filter(p => selectedIds.value.includes(p.id))
+})
+
+const handleBulkDelete = () => {
+  if (selectedIds.value.length === 0) return
+  
+  // Exclude default project from bulk delete logic within confirm
+  const targets = selectedIds.value.filter(id => id !== 'default')
+  if (targets.length === 0) {
+    alert("System projects cannot be deleted.")
+    selectedIds.value = []
+    return
+  }
+
+  isBulkDeleteModalOpen.value = true
+}
+
+const confirmBulkDelete = () => {
+  const targets = selectedIds.value.filter(id => id !== 'default')
+  targets.forEach(id => projectsStore.removeProject(id))
+  selectedIds.value = []
+  isBulkDeleteModalOpen.value = false
+}
+
+const clearSelection = () => {
+  selectedIds.value = []
+}
+
 // Close menu when clicking outside (simple version)
 const closeMenu = () => {
   activeMenuId.value = null
 }
+
+const isQuickDumpModalOpen = ref(false)
 </script>
 
 <template>
   <div class="h-full flex flex-col bg-gray-50/30 dark:bg-gray-900/30 p-8 overflow-y-auto custom-scrollbar" @click="closeMenu">
+    <!-- Quick Dump Modal -->
+    <QuickDumpPairModal :is-open="isQuickDumpModalOpen" @close="isQuickDumpModalOpen = false" />
+    <!-- Bulk Delete Modal -->
+    <BulkDeleteConfirmModal 
+      :is-open="isBulkDeleteModalOpen" 
+      :projects="projectsToDelete"
+      @close="isBulkDeleteModalOpen = false"
+      @confirm="confirmBulkDelete"
+    />
     <!-- Header Area -->
     <div class="max-w-7xl mx-auto w-full mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div class="space-y-2">
@@ -140,6 +221,14 @@ const closeMenu = () => {
         </div>
 
         <button 
+          @click="isQuickDumpModalOpen = true"
+          class="flex items-center gap-2 px-6 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-2xl font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+        >
+          <Zap class="w-4 h-4 fill-white/20" />
+          QUICK COMPARE
+        </button>
+
+        <button 
           @click="emit('create')"
           class="flex items-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-bold shadow-lg shadow-primary-500/20 active:scale-95 transition-all"
         >
@@ -147,6 +236,49 @@ const closeMenu = () => {
           NEW BASE
         </button>
       </div>
+    </div>
+
+    <!-- Bulk Action Toolbar -->
+    <div 
+      v-if="isSelectionMode"
+      class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-gray-900 text-white px-6 py-4 rounded-3xl shadow-2xl border border-white/10 flex items-center gap-8 animate-in slide-in-from-bottom-10 duration-500"
+    >
+      <div class="flex items-center gap-3 border-r border-white/10 pr-6">
+        <button 
+          @click="toggleSelectAll"
+          class="flex items-center gap-2 px-3 py-1.5 hover:bg-white/10 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest text-primary-400"
+          :title="selectedIds.length === filteredProjects.length ? 'Deselect All' : 'Select All'"
+        >
+          <div class="w-5 h-5 rounded border-2 border-primary-500 flex items-center justify-center bg-transparent">
+            <Check v-if="selectedIds.length === filteredProjects.length" class="w-3 h-3 text-primary-500 stroke-[4px]" />
+          </div>
+          {{ selectedIds.length === filteredProjects.length ? 'None' : 'All' }}
+        </button>
+        <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center font-black text-sm">
+          {{ selectedIds.length }}
+        </div>
+        <div class="flex flex-col">
+          <span class="text-[10px] font-black uppercase tracking-widest text-primary-400">Selected</span>
+          <span class="text-xs font-bold">{{ selectedIds.length }} Project{{ selectedIds.length > 1 ? 's' : '' }}</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button 
+          @click="handleBulkDelete"
+          class="flex items-center gap-2 px-4 py-2 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl transition-all font-bold text-xs uppercase tracking-wider"
+        >
+          <Trash2 class="w-4 h-4" />
+          Delete Selected
+        </button>
+      </div>
+
+      <button 
+        @click="clearSelection"
+        class="p-2 hover:bg-white/10 rounded-xl transition-all text-gray-400"
+      >
+        <X class="w-5 h-5" />
+      </button>
     </div>
 
     <!-- Content Area (Conditional View) -->
@@ -157,9 +289,34 @@ const closeMenu = () => {
         <div 
           v-for="project in filteredProjects" 
           :key="project.id"
-          class="group relative bg-white dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-3xl p-6 hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-500/50 transition-all duration-500 cursor-pointer"
-          @click="emit('open', project.id)"
+          class="group relative bg-white dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-3xl p-6 transition-all duration-500 cursor-pointer"
+          :class="[
+            selectedIds.includes(project.id) 
+              ? 'ring-2 ring-primary-500 bg-primary-50/10 border-primary-500/30 shadow-2xl shadow-primary-500/10' 
+              : 'hover:shadow-2xl hover:shadow-primary-500/10 hover:border-primary-500/50'
+          ]"
+          @click="isSelectionMode ? toggleSelection(project.id) : emit('open', project.id)"
         >
+          <!-- Selection Checkbox (Grid) -->
+          <div 
+            class="absolute top-4 left-4 z-40 transition-all duration-300"
+            :class="[isSelectionMode ? 'opacity-100 scale-100' : 'opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100']"
+          >
+            <button 
+              @click.stop="toggleSelection(project.id)"
+              class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all bg-white dark:bg-gray-800"
+              :class="[
+                selectedIds.includes(project.id) 
+                  ? '!bg-primary-500 !border-primary-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
+                  : 'border-gray-200 dark:border-gray-600 hover:border-primary-500 shadow-sm'
+              ]"
+            >
+              <Check 
+                v-if="selectedIds.includes(project.id)" 
+                class="w-4 h-4 text-white stroke-[3.5px] animate-in zoom-in-50 duration-200" 
+              />
+            </button>
+          </div>
           <!-- Card Background Pattern (Clipped to card) -->
           <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
             <div class="absolute -right-4 -top-4 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl group-hover:bg-primary-500/10 transition-colors duration-500"></div>
@@ -259,6 +416,21 @@ const closeMenu = () => {
             <div class="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide uppercase">Start a fresh project cluster</div>
           </div>
         </div>
+
+        <!-- Try Live Demo Card -->
+        <div 
+          @click="handleSetupDemo"
+          class="group bg-orange-500/5 dark:bg-orange-500/10 border-2 border-dashed border-orange-200 dark:border-orange-900/30 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 hover:bg-orange-500/10 dark:hover:bg-orange-500/20 hover:border-orange-500/50 transition-all duration-300 cursor-pointer min-h-[260px]"
+        >
+          <div class="w-16 h-16 rounded-3xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-orange-500 group-hover:scale-110 transition-all duration-300">
+            <Play v-if="!isDemoSettingUp" class="w-8 h-8 fill-orange-500/20" />
+            <Loader v-else class="w-8 h-8 animate-spin" />
+          </div>
+          <div class="text-center group-hover:translate-y-1 transition-transform">
+            <div class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest mb-1">{{ $t('common.liveDemo') }}</div>
+            <div class="text-xs font-bold text-orange-500/70 tracking-wide uppercase">Try Andb with sample SQL dumps</div>
+          </div>
+        </div>
       </div>
 
       <!-- LIST VIEW -->
@@ -266,9 +438,34 @@ const closeMenu = () => {
         <div 
           v-for="project in filteredProjects" 
           :key="project.id"
-          class="group relative bg-white dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex items-center gap-6 hover:shadow-xl hover:shadow-primary-500/5 hover:border-primary-500/50 transition-all duration-300 cursor-pointer"
-          @click="emit('open', project.id)"
+          class="group relative bg-white dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex items-center gap-6 transition-all duration-300 cursor-pointer overflow-hidden"
+          :class="[
+            selectedIds.includes(project.id) 
+              ? 'ring-2 ring-primary-500 bg-primary-50/10 border-primary-500/30 shadow-lg' 
+              : 'hover:shadow-xl hover:shadow-primary-500/5 hover:border-primary-500/50'
+          ]"
+          @click="isSelectionMode ? toggleSelection(project.id) : emit('open', project.id)"
         >
+          <!-- Selection Checkbox (List) -->
+          <div 
+            class="shrink-0 z-40 transition-all duration-300"
+            :class="[isSelectionMode ? 'opacity-100 w-6' : 'opacity-0 w-0 group-hover:opacity-100 group-hover:w-6']"
+          >
+            <button 
+              @click.stop="toggleSelection(project.id)"
+              class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all bg-white dark:bg-gray-800"
+              :class="[
+                selectedIds.includes(project.id) 
+                  ? '!bg-primary-500 !border-primary-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
+                  : 'border-gray-200 dark:border-gray-600 hover:border-primary-500 shadow-sm'
+              ]"
+            >
+              <Check 
+                v-if="selectedIds.includes(project.id)" 
+                class="w-4 h-4 text-white stroke-[3.5px] animate-in zoom-in-50 duration-200" 
+              />
+            </button>
+          </div>
            <!-- Card Background Pattern (Clipped to card) -->
           <div class="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
             <div class="absolute -right-4 top-1/2 -translate-y-1/2 w-48 h-48 bg-primary-500/[0.03] rounded-full blur-3xl group-hover:bg-primary-500/[0.06] transition-colors duration-500"></div>
@@ -371,6 +568,16 @@ const closeMenu = () => {
         >
           <Plus class="w-4 h-4 stroke-[3px]" />
           Add New Base
+        </button>
+
+        <!-- Inline Live Demo Button -->
+        <button 
+          @click="handleSetupDemo"
+          class="w-full py-4 bg-orange-500/5 dark:bg-orange-500/10 border-2 border-dashed border-orange-200 dark:border-orange-900/30 rounded-2xl flex items-center justify-center gap-3 text-orange-500 hover:bg-orange-500/10 dark:hover:bg-orange-500/20 hover:border-orange-500/50 transition-all duration-300 font-black text-xs uppercase tracking-[0.2em]"
+        >
+          <Play v-if="!isDemoSettingUp" class="w-4 h-4 fill-orange-500/20" />
+          <Loader v-else class="w-4 h-4 animate-spin" />
+          {{ $t('common.liveDemo') }}
         </button>
       </div>
 

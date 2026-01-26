@@ -325,6 +325,11 @@ const handleDeepLink = (query: any) => {
   }
 }
 
+// Watch for project changes to reset state
+watch(() => projectsStore.selectedProjectId, () => {
+  activeCategory.value = 'connections'
+})
+
 onMounted(() => {
   handleDeepLink(route.query)
 })

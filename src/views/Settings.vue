@@ -771,6 +771,7 @@ import { useAppStore } from '@/stores/app'
 import { useSettingsStore, themeOptions } from '@/stores/settings'
 import { useOperationsStore } from '@/stores/operations'
 import { useUpdaterStore } from '@/stores/updater'
+import { useConsoleStore } from '@/stores/console'
 
 
 import { useConnectionTemplatesStore } from '@/stores/connectionTemplates'
@@ -929,7 +930,18 @@ const confirmResetData = async () => {
   isResetting.value = true
   try {
      if ((window as any).electronAPI && (window as any).electronAPI.andbClearStorage) {
-         await (window as any).electronAPI.andbClearStorage()
+         const res = await (window as any).electronAPI.andbClearStorage()
+         
+         const consoleStore = useConsoleStore()
+         if (res.success && res.data) {
+             const { ddl, comparison, snapshot, migration } = res.data
+             consoleStore.addLog('APPLICATION DATA RESET COMPLETED', 'warn')
+             consoleStore.addLog(`- Deleted ${ddl || 0} DDL records`, 'info')
+             consoleStore.addLog(`- Deleted ${comparison || 0} Comparison records`, 'info')
+             consoleStore.addLog(`- Deleted ${snapshot || 0} Snapshot records`, 'info')
+             consoleStore.addLog(`- Deleted ${migration || 0} Migration records`, 'info')
+             consoleStore.setVisibility(true)
+         }
      } else {
          await new Promise(resolve => setTimeout(resolve, 800))
      }

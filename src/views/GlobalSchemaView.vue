@@ -290,6 +290,7 @@ import { useI18n } from 'vue-i18n'
 
 import { useAppStore } from '@/stores/app'
 import { useConsoleStore } from '@/stores/console'
+import { useProjectsStore } from '@/stores/projects'
 import Andb from '@/utils/andb'
 import DDLViewer from '@/components/ddl/DDLViewer.vue'
 import SchemaDiagram from '@/components/ddl/SchemaDiagram.vue'
@@ -320,11 +321,27 @@ import { useSidebarStore } from '@/stores/sidebar'
 import DDLVisualizer from '@/components/ddl/DDLVisualizer.vue'
 
 const appStore = useAppStore()
+const projectsStore = useProjectsStore()
 const { t } = useI18n()
 const consoleStore = useConsoleStore()
 const notificationStore = useNotificationStore()
 const sidebarStore = useSidebarStore()
 const router = useRouter()
+
+// Watch for project changes to reset schema selection
+watch(() => projectsStore.selectedProjectId, () => {
+  // @ts-ignore - Handle possible null/string mismatch in different setups
+  selectedConnectionId.value = ''
+  selectedItem.value = null
+  selectedFilterType.value = 'all'
+  schemaData.value = {
+    tables: [],
+    procedures: [],
+    functions: [],
+    views: [],
+    triggers: []
+  }
+})
 
 
 const typeIcons = {
@@ -701,7 +718,15 @@ const loadSchema = async (forceRefresh = false) => {
         // ... (no clearing for atomic item refresh usually)
         let objTypes: any[] = [selectedItem.value.type.toLowerCase()] // e.g., 'tables'
         let exportName: string | undefined = selectedItem.value.name
-        consoleStore.addLog(`Refreshing single object: ${selectedItem.value.name} (${selectedItem.value.type})`, 'info')
+
+        // Special handling for Diagrams (fetch all tables instead)
+        if (selectedItem.value.type === 'diagrams') {
+          objTypes = ['tables']
+          exportName = undefined
+          consoleStore.addLog(`Refreshing tables for Interactive ERD...`, 'info')
+        } else {
+          consoleStore.addLog(`Refreshing single object: ${selectedItem.value.name} (${selectedItem.value.type})`, 'info')
+        }
         
         // Helper to run export
         const runExports = async () => {
@@ -757,7 +782,12 @@ const loadSchema = async (forceRefresh = false) => {
         // 3. FULL REFRESH
         // POWERFUL CLEANUP HERE
         consoleStore.addLog(t('schema.cleaningCache'), 'warn')
-        await Andb.clearConnectionData(conn)
+        const clearResult = await Andb.clearConnectionData(conn)
+        
+        if (clearResult) {
+          consoleStore.addLog(`Cleared ${clearResult.ddlCount || 0} DDL records`, 'info')
+          consoleStore.addLog(`Cleared ${clearResult.comparisonCount || 0} Comparison records`, 'info')
+        }
         
         consoleStore.addLog(t('schema.refreshed'), 'info')
         let objTypes: any[] = ['tables', 'procedures', 'functions', 'triggers', 'views']
@@ -854,6 +884,12 @@ watch(() => sidebarStore.refreshRequestKey, () => {
   // Note: route checks are tricky in sub-component, but assuming this is only mounted when valid
   if (selectedConnectionId.value) {
     loadSchema(true)
+  }
+})
+
+watch(() => sidebarStore.refreshKey, () => {
+  if (selectedConnectionId.value) {
+    loadSchema(false) // Reload from cache (SQLite) as global refresh updated it
   }
 })
 
@@ -975,44 +1011,6 @@ const handleDatabaseSelected = (e: any) => {
   }
 }
 
-const handleDatabaseRefreshRequested = (e: any) => {
-  const { env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
-  if (conn) {
-    selectedConnectionId.value = conn.id
-    selectedFilterType.value = 'all'
-    loadSchema(true)
-  }
-}
-
-const handleCategoryRefreshRequested = (e: any) => {
-  const { type, env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
-  if (conn) {
-    selectedConnectionId.value = conn.id
-    selectedFilterType.value = type
-    selectedItem.value = null
-    loadSchema(true)
-  }
-}
-
-const handleObjectRefreshRequested = (e: any) => {
-  const { name, type, env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
-  if (conn) {
-    selectedConnectionId.value = conn.id
-    selectedFilterType.value = type
-    // Load from cache or current results to ensure selection
-    loadSchema(false).then(() => {
-      const item = allResults.value.find(i => i.name === name && (type === 'all' || i.type === type))
-      if (item) {
-        selectedItem.value = item
-        loadSchema(true)
-      }
-    })
-  }
-}
-
 onMounted(() => {
   // If there's an active pair, default to source
   if (appStore.currentPair?.source) {
@@ -1022,18 +1020,12 @@ onMounted(() => {
   window.addEventListener('category-selected', handleCategorySelected)
   window.addEventListener('object-selected', handleObjectSelected)
   window.addEventListener('database-selected', handleDatabaseSelected)
-  window.addEventListener('database-refresh-requested', handleDatabaseRefreshRequested)
-  window.addEventListener('category-refresh-requested', handleCategoryRefreshRequested)
-  window.addEventListener('object-refresh-requested', handleObjectRefreshRequested)
 })
 
 onUnmounted(() => {
   window.removeEventListener('category-selected', handleCategorySelected)
   window.removeEventListener('object-selected', handleObjectSelected)
   window.removeEventListener('database-selected', handleDatabaseSelected)
-  window.removeEventListener('database-refresh-requested', handleDatabaseRefreshRequested)
-  window.removeEventListener('category-refresh-requested', handleCategoryRefreshRequested)
-  window.removeEventListener('object-refresh-requested', handleObjectRefreshRequested)
 })
 
 const translateDDLType = (type: string) => {

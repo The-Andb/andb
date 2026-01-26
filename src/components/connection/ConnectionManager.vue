@@ -315,18 +315,17 @@ const deleteConnection = (id: string) => {
   if (confirm($t('connections.confirmDelete'))) appStore.removeConnection(id)
 }
 
-const handleSaveConnection = (connectionData: Omit<DatabaseConnection, 'id'>) => {
-  if (editingConnection.value) {
-    appStore.updateConnection(editingConnection.value.id, connectionData)
-  } else {
-    // Stick: If creating new connection in a project context, attach it!
-    appStore.addConnection({ 
-      ...connectionData, 
-      environment: selectedEnvironment.value as 'DEV' | 'STAGE' | 'UAT' | 'PROD' 
-    })
+  const handleSaveConnection = (connectionData: Omit<DatabaseConnection, 'id'>) => {
+    if (editingConnection.value) {
+      appStore.updateConnection(editingConnection.value.id, connectionData)
+    } else {
+      // Respect the environment selected in the form
+      appStore.addConnection({ 
+        ...connectionData
+      })
+    }
+    closeForm()
   }
-  closeForm()
-}
 
 const closeForm = () => {
   showAddForm.value = false

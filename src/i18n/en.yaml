@@ -24,6 +24,16 @@ common:
   new: 'New'
   search: 'Search'
   switch: 'Switch'
+  liveDemo: 'Live Demo'
+  quickDump:
+    title: 'Quick Dump Compare'
+    subtitle: 'Instant offline schema diffing'
+    projectNameLabel: 'Pair / Project Name (Optional)'
+    projectNamePlaceholder: 'e.g. Production Hotfix Sync'
+    sourceLabel: 'Source Dump'
+    targetLabel: 'Target Dump'
+    selectFile: 'Select .sql file'
+    start: 'Start Comparison'
   matchCase: 'Match Case'
   wholeWord: 'Match Whole Word'
   useRegex: 'Use Regular Expression'
@@ -97,6 +107,7 @@ dashboard:
   switchProject: 'Switch Project'
   newConnection: 'New Connection'
   newComparison: 'New Comparison'
+  reports: 'Reports'
   loadSamples: 'Load Samples'
   samples: 'Samples'
   loading: 'Loading'
@@ -385,8 +396,11 @@ connections:
   databaseType: 'Database Type'
   types:
     mysql: 'MySQL / MariaDB'
+    dump: 'SQL Dump File'
     postgres: 'PostgreSQL (Coming Soon)'
     sqlite: 'SQLite (Coming Soon)'
+  dumpPath: 'Dump File Path'
+  dumpPathPlaceholder: 'Select or enter path to .sql file'
 
 environments:
   configuration: 'Environment Configuration'
@@ -593,6 +607,8 @@ migration:
   sqlPreview: 'Migration SQL Preview'
   noPreview: 'No SQL preview available for this operation.'
   comingSoonTooltip: 'Auto-migration is currently disabled for stabilization. Please copy and run the SQL below manually in your database client.'
+  actionBatch: 'Migrate Selected'
+  actionSingle: 'Migrate'
 
 ddlDetail:
   details: '{type} Details'

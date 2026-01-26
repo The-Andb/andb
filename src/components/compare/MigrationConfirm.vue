@@ -37,12 +37,12 @@
         </button>
         <button
           type="button"
-          class="flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 transition-all border border-gray-200 dark:border-gray-700 cursor-not-allowed items-center gap-1.5"
-          disabled
-          :title="$t('migration.comingSoonTooltip') || 'Auto-migration coming soon. Please copy and run SQL manually.'"
+          class="flex items-center justify-center rounded-md bg-primary-600 hover:bg-primary-500 text-white px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-all border border-primary-600 shadow-md hover:shadow-lg active:scale-95 items-center gap-1.5"
+          :disabled="loading"
+          @click="$emit('confirm')"
         >
-          <Hammer class="w-3 h-3 opacity-50" />
-          {{ $t('common.comingSoon') || 'COMING SOON' }}
+          <Zap class="w-3 h-3" :class="{ 'animate-spin': loading }" />
+          {{ loading ? $t('common.processing') : (isBatchMode ? $t('migration.actionBatch') : $t('migration.actionSingle')) }}
         </button>
       </div>
     </div>

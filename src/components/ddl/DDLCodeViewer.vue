@@ -11,7 +11,8 @@
           <div class="flex items-center space-x-2 mt-0.5">
             <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider transition-colors duration-200">{{ ddlType }}</span>
             <span v-if="environment" class="text-[10px] uppercase font-bold text-primary-500 tracking-wider">• {{ environment }}</span>
-            <div v-if="updatedAt" class="flex items-center text-[10px] text-gray-400 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
+            <span v-if="isDump" class="text-[10px] uppercase font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded tracking-widest animate-pulse border border-orange-500/20 ml-2">Static File</span>
+            <div v-else-if="updatedAt" class="flex items-center text-[10px] text-gray-400 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
               <span class="mr-1 opacity-70">{{ $t('schema.lastSynced') }}:</span>
               <span class="font-mono text-gray-500 dark:text-gray-300">{{ formatTimeAgo(updatedAt) }}</span>
             </div>
@@ -21,6 +22,7 @@
       
       <div class="flex items-center space-x-2">
         <button 
+          v-if="!isDump"
           @click="$emit('snapshot')"
           :disabled="loading"
           class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
@@ -29,6 +31,7 @@
           <Camera class="w-4 h-4" />
         </button>
         <button 
+          v-if="!isDump"
           @click="$emit('history')"
           class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
           :title="$t('schema.viewHistory')"
@@ -36,6 +39,7 @@
           <History class="w-4 h-4" />
         </button>
         <button 
+          v-if="!isDump"
           @click="$emit('refresh')"
           :disabled="loading"
           class="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
@@ -95,6 +99,7 @@ const props = defineProps<{
   environment?: string
   updatedAt?: string
   loading?: boolean
+  isDump?: boolean
   fontSize?: number
   fontFamily?: string
 }>()

@@ -406,13 +406,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import DDLDetailModal from '@/components/ddl/DDLDetailModal.vue'
 import MirrorDiffView from '@/components/compare/MirrorDiffView.vue'
 import { useConnectionPairsStore } from '@/stores/connectionPairs'
 import { useAppStore } from '@/stores/app'
+import { useProjectsStore } from '@/stores/projects'
 import { useConsoleStore } from '@/stores/console'
 import Andb from '@/utils/andb'
 import { watch } from 'vue'
@@ -460,6 +461,20 @@ const targetName = computed(() => activePair.value?.target?.name || 'Target')
 const route = useRoute()
 const router = useRouter() // Ensure router is available
 
+const projectsStore = useProjectsStore()
+
+// Watch for project changes to reset state
+watch(() => projectsStore.selectedProjectId, () => {
+  tableResults.value = []
+  procedureResults.value = []
+  functionResults.value = []
+  viewResults.value = []
+  triggerResults.value = []
+  selectedItem.value = null
+  selectedFilterType.value = 'all'
+  error.value = null
+})
+
 // Deep Link Handling
 onMounted(async () => {
     // Check for pairId in query
@@ -473,17 +488,23 @@ onMounted(async () => {
 
     // Check for action=new (Auto Run)
     if (route.query.action === 'new') {
+        // Wait a bit for stores to sync activePair from the selectPair call above
+        await nextTick()
+        
         // If we have an active pair, run valid comparison immediately
         if (activePair.value) {
            runComparison(true)
         } else {
-            // If no pair, we might want to prompt user to select one or create one
-            // For now, let's just show a notification
-            notificationStore.add({
-                type: 'info',
-                title: 'New Comparison',
-                message: 'Please select a Connection Pair to start comparison.'
-            })
+            // Retry once after another tick if store was slow
+            await nextTick()
+            if (activePair.value) runComparison(true)
+            else {
+                notificationStore.add({
+                    type: 'info',
+                    title: 'New Comparison',
+                    message: 'Please select a Connection Pair to start comparison.'
+                })
+            }
         }
         
         // Clean URL
@@ -795,6 +816,9 @@ const runComparison = async (refresh: boolean = false) => {
       message: e.message
     })
   } finally {
+    // 5. Update Sidebar to show new objects
+    await sidebarStore.loadSchemas(true)
+    
     loading.value = false
   }
 }

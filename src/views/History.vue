@@ -195,13 +195,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import MainLayout from '@/layouts/MainLayout.vue'
 import DDLViewer from '@/components/ddl/DDLViewer.vue'
 import Andb from '@/utils/andb'
 import { useAppStore } from '@/stores/app'
+import { useProjectsStore } from '@/stores/projects'
 import { useNotificationStore } from '@/stores/notification'
 import { 
   History, 
@@ -226,9 +227,18 @@ const snapshots = ref<any[]>([])
 const selectedSnapshot = ref<any>(null)
 const copySuccess = ref(false)
 const appStore = useAppStore()
+const projectsStore = useProjectsStore()
 const notificationStore = useNotificationStore()
 const route = useRoute()
 const { t } = useI18n()
+
+// Watch for project changes to reset state
+watch(() => projectsStore.selectedProjectId, () => {
+  selectedSnapshot.value = null
+  filters.value.query = ''
+  filters.value.type = ''
+  filters.value.environment = ''
+})
 
 const filters = ref({
   environment: '',
@@ -242,17 +252,27 @@ const currentConnection = computed(() => {
   return appStore.connections.find(c => c.id === appStore.selectedConnectionId)
 })
 
+const projectConnections = computed(() => {
+  if (!projectsStore.currentProject) return []
+  const ids = projectsStore.currentProject.connectionIds || []
+  return appStore.connections.filter(c => ids.includes(c.id))
+})
+
 const filteredSnapshots = computed(() => {
   return snapshots.value.filter(s => {
-    // 1. Filter by Globally Selected Connection (Environment & Database)
-    // If no connection selected, show nothing or all? 
-    // "Mission Control" implies we follow the selection.
+    // 1. Primary Filter: Must belong to current project
+    const belongsToProject = projectConnections.value.some(c => 
+      c.environment === s.environment && c.database === s.database_name
+    )
+    if (!belongsToProject) return false
+
+    // 2. Secondary Filter: If a specific connection is globally selected
     if (currentConnection.value) {
        if (s.environment !== currentConnection.value.environment) return false
        if (s.database_name !== currentConnection.value.database) return false
     }
 
-    // 2. Local Filters (Type & Query)
+    // 3. Local UI Filters (Type & Query)
     const matchesType = !filters.value.type || s.ddl_type === filters.value.type
     const matchesQuery = !filters.value.query || 
                          s.ddl_name.toLowerCase().includes(filters.value.query.toLowerCase())

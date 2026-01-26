@@ -304,6 +304,46 @@ ipcMain.handle('open-backup-folder', async () => {
 })
 
 /**
+ * Open file dialog
+ */
+ipcMain.handle('pick-file', async (event, options) => {
+  const { dialog } = require('electron')
+  const result = await dialog.showOpenDialog(options)
+  if (result.canceled || result.filePaths.length === 0) return null
+  return result.filePaths[0]
+})
+
+/**
+ * Copy file to internal uploads directory
+ */
+ipcMain.handle('save-dump-file', async (event, sourcePath: string) => {
+  const fs = require('fs')
+  const path = require('path')
+  const { app } = require('electron')
+
+  try {
+    const uploadDir = path.join(app.getPath('userData'), 'uploads', 'dumps')
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true })
+    }
+
+    const fileName = path.basename(sourcePath)
+    // Add timestamp to avoid collisions
+    const newFileName = `${Date.now()}_${fileName}`
+    const targetPath = path.join(uploadDir, newFileName)
+
+    fs.copyFileSync(sourcePath, targetPath)
+
+    if ((global as any).logger) (global as any).logger.info(`File uploaded: ${sourcePath} -> ${targetPath}`)
+
+    return targetPath // Return the internal path
+  } catch (error) {
+    if ((global as any).logger) (global as any).logger.error('Failed to save dump file:', error)
+    throw error
+  }
+})
+
+/**
  * Create a manual DDL snapshot
  */
 ipcMain.handle('andb-create-snapshot', async (event, args) => {
@@ -366,6 +406,16 @@ ipcMain.handle('execute-andb-operation', async (
  */
 ipcMain.handle('test-connection', async (event, connection: any) => {
   try {
+    // Special handling for SQL Dump files
+    if (connection.type === 'dump') {
+      const fs = require('fs')
+      if (fs.existsSync(connection.host)) {
+        return { success: true, message: 'Source file found' }
+      } else {
+        return { success: false, message: `File not found: ${connection.host}` }
+      }
+    }
+
     const mysql = require('mysql2/promise')
 
     // Create test connection
@@ -454,6 +504,45 @@ ipcMain.handle('get-database-stats', async () => {
     // but let's assume we add it to AndbBuilder or it's similar
     return { success: true, data: await (AndbBuilder as any).getDatabaseStats() }
   } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+// ========================================
+// IPC Handlers for Reports
+// ========================================
+
+/**
+ * Get list of available reports
+ */
+ipcMain.handle('andb-get-report-list', async () => {
+  try {
+    const data = await AndbBuilder.getReportList()
+    return { success: true, data }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+/**
+ * Get report content
+ */
+ipcMain.handle('andb-get-report-content', async (event, filename) => {
+  try {
+    const content = await AndbBuilder.getReportContent(filename)
+    return { success: true, data: content }
+  } catch (error: any) {
+    if ((global as any).logger) (global as any).logger.error('Failed to get report content', error)
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('andb-delete-all-reports', async () => {
+  try {
+    await AndbBuilder.deleteAllReports()
+    return { success: true }
+  } catch (error: any) {
+    if ((global as any).logger) (global as any).logger.error('Failed to delete reports', error)
     return { success: false, error: error.message }
   }
 })
@@ -716,8 +805,9 @@ ipcMain.handle('andb-get-schemas', async (event) => {
 ipcMain.handle('andb-clear-storage', async () => {
   try {
     const storage = (AndbBuilder as any).getSQLiteStorage()
-    await storage.clearAll()
-    return { success: true }
+    // Returns { ddl, comparison, snapshot, migration, actions }
+    const result = await storage.clearAll()
+    return { success: true, data: result }
   } catch (error: any) {
     return { success: false, error: error.message }
   }
@@ -728,8 +818,8 @@ ipcMain.handle('andb-clear-storage', async () => {
  */
 ipcMain.handle('andb-clear-connection-data', async (event, connection) => {
   try {
-    await AndbBuilder.clearConnectionData(connection)
-    return { success: true }
+    const result = await AndbBuilder.clearConnectionData(connection)
+    return { success: true, data: result }
   } catch (error: any) {
     return { success: false, error: error.message }
   }

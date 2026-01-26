@@ -71,6 +71,8 @@ declare global {
       andbCreateSnapshot: (args: { connection: any; type: string; name: string }) => Promise<{ success: boolean; data?: any; error?: string }>
       andbRestoreSnapshot: (args: { connection: any; snapshot: any }) => Promise<{ success: boolean; data?: any; error?: string }>
       openBackupFolder: () => Promise<{ success: boolean; error?: string }>
+      getReportList: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+      getReportContent: (filename: string) => Promise<{ success: boolean; data?: string; error?: string }>
 
       loadMockCompareData: () => Promise<{ success: boolean; message?: string; error?: string }>
 

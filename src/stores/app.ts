@@ -24,7 +24,7 @@ export interface DatabaseConnection {
     domain?: string
     emailServer?: string
   }
-  type?: 'mysql' | 'postgres' | 'sqlite'
+  type?: 'mysql' | 'postgres' | 'sqlite' | 'dump'
   templateId?: string // Optional link to a ConnectionTemplate
 }
 

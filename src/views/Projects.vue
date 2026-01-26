@@ -110,8 +110,21 @@ const displayedBreadcrumbs = computed(() => {
 })
 
 const createNewProject = () => {
+  // Find a unique name like "Untitled Base 1", "Untitled Base 2"
+  let nextNumber = 1
+  let newName = 'Untitled Base'
+  
+  const existingNames = projectsStore.projects.map(p => p.name)
+  while (existingNames.includes(newName + (nextNumber > 1 ? ` ${nextNumber}` : ''))) {
+    nextNumber++
+  }
+  
+  if (nextNumber > 1) {
+    newName = `${newName} ${nextNumber}`
+  }
+
   const newProject = projectsStore.addProject({
-    name: 'Untitled Base',
+    name: newName,
     description: '',
     connectionIds: [],
     pairIds: [],
