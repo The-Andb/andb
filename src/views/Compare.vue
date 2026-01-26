@@ -11,8 +11,10 @@
             </h1>
             <div v-if="activePair && activePair.source && activePair.target" class="flex items-center text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                <span class="text-blue-500">{{ activePair.source.name }}</span>
+               <span v-if="isSourceDump" class="ml-1 px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 text-[8px] font-black border border-orange-200 dark:border-orange-800/50">STATIC</span>
                <ArrowRightLeft class="w-3 h-3 mx-2 opacity-50 text-gray-400" />
                <span class="text-green-500">{{ activePair.target.name }}</span>
+               <span v-if="isTargetDump" class="ml-1 px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 text-[8px] font-black border border-orange-200 dark:border-orange-800/50">STATIC</span>
                <span v-if="hasResults" class="ml-3 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-800/30">
                  {{ countSummary }}
                </span>
@@ -222,9 +224,9 @@
                       <div v-if="!showMigrateModal" class="flex items-center gap-3">
                         <button 
                           v-if="cat.changes > 0"
-                          @click.stop.prevent="openBatchMigrateModal(cat.type)"
-                          class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-500 hover:text-white hover:border-orange-600 hover:shadow-md dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50 dark:hover:bg-orange-600 dark:hover:text-white transition-all group/badge shadow-sm"
-                          title="Click to Migrate All Changes"
+                          class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-500 hover:text-white hover:border-orange-600 hover:shadow-md dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50 dark:hover:bg-orange-600 dark:hover:text-white transition-all group/badge shadow-sm disabled:opacity-50 disabled:grayscale"
+                          :title="isTargetDump ? 'Cannot migrate to a static file' : 'Click to Migrate All Changes'"
+                          :disabled="isTargetDump"
                         >
                           <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-900/50 rounded w-4 h-4 group-hover/badge:bg-white/20 group-hover/badge:text-white transition-colors">
                             <Zap class="w-2.5 h-2.5 fill-current" />
@@ -284,6 +286,7 @@
                           :class="getStatusClass(item.status)"
                         />
                         <Zap 
+                          v-if="!isTargetDump"
                           @click.stop="openMigrateModal(item)"
                           class="w-4 h-4 text-primary-500 hidden group-hover/status:block cursor-pointer hover:scale-125 hover:drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)] active:scale-95 animate-in fade-in zoom-in-75 duration-200"
                           title="Click to Migrate"
@@ -311,6 +314,7 @@
                   :item="migratingItem"
                   :source-name="sourceName"
                   :target-name="targetName"
+                  :target-is-static="isTargetDump"
                   :sql-script="migrationSql"
                   :sql-map="migrationSqlMap"
                   :fetching-sql="fetchingMigrationSql"
@@ -347,8 +351,9 @@
                     <button 
                       v-if="selectedItem.status !== 'equal' && selectedItem.status !== 'same'"
                       @click="openMigrateModal(selectedItem)" 
-                      class="btn btn-primary py-1.5 px-4 text-[11px] h-9 flex items-center gap-2 group overflow-hidden relative shadow-lg shadow-primary-500/20 active:scale-95 transition-all"
-                      :disabled="isMigrating"
+                      class="btn btn-primary py-1.5 px-4 text-[11px] h-9 flex items-center gap-2 group overflow-hidden relative shadow-lg shadow-primary-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      :disabled="isMigrating || isTargetDump"
+                      :title="isTargetDump ? 'Target is read-only (Static Dump)' : $t('compare.migrateTo', { name: targetName })"
                     >
                       <Zap class="w-4 h-4 group-hover:animate-pulse" />
                       <span class="font-bold">{{ $t('compare.migrateTo', { name: targetName }) }}</span>
@@ -385,6 +390,7 @@
                :results="allResults"
                :source-name="sourceName"
                :target-name="targetName"
+               :target-is-static="isTargetDump"
                v-model:active-type="selectedFilterType"
                @migrate="openMigrateModal"
              />
@@ -461,6 +467,18 @@ const targetName = computed(() => activePair.value?.target?.name || 'Target')
 const route = useRoute()
 const router = useRouter() // Ensure router is available
 
+const isSourceDump = computed(() => {
+  const conn = activePair.value?.source
+  if (!conn) return false
+  return conn.type === 'dump' || conn.host?.toLowerCase().endsWith('.sql') || conn.host?.includes('.sql')
+})
+
+const isTargetDump = computed(() => {
+  const conn = activePair.value?.target
+  if (!conn) return false
+  return conn.type === 'dump' || conn.host?.toLowerCase().endsWith('.sql') || conn.host?.includes('.sql')
+})
+
 const projectsStore = useProjectsStore()
 
 // Watch for project changes to reset state
@@ -521,14 +539,21 @@ const fetchButtonText = computed(() => {
         const type = selectedItem.value.type.toLowerCase()
         let singularType = type.endsWith('s') ? type.slice(0, -1) : type
         if (type === 'procedures') singularType = 'procedure'
-        return `FETCH THIS ${singularType.toUpperCase()}`
+        
+        const isDump = isSourceDump.value || isTargetDump.value
+        const action = isDump ? 'RE-PARSE' : 'FETCH'
+        return `${action} THIS ${singularType.toUpperCase()}`
     }
     
     // If category filtered
     if (selectedFilterType.value && selectedFilterType.value !== 'all') {
-        return `FETCH ALL ${selectedFilterType.value.toUpperCase()}`
+        const isDump = isSourceDump.value || isTargetDump.value
+        const action = isDump ? 'RE-PARSE' : 'FETCH'
+        return `${action} ALL ${selectedFilterType.value.toUpperCase()}`
     }
 
+    const isDump = isSourceDump.value || isTargetDump.value
+    if (isDump) return 'Re-parse Dump Files'
     if (appStore.buttonStyle === 'full') return t('compare.fetchFromDB')
     return t('compare.fetch')
 })
@@ -1051,6 +1076,17 @@ const openMigrateModal = async (item: any) => {
 
 const openBatchMigrateModal = (type: string) => {
   console.log('[Compare] openBatchMigrateModal called with type:', type)
+  
+  // DBA Rule: Cannot migrate to a static SQL dump file
+  if (isTargetDump.value) {
+    notificationStore.add({
+      type: 'warning',
+      title: t('compare.dumpReadOnly'),
+      message: t('compare.cannotMigrateToDump')
+    })
+    return
+  }
+  
   consoleStore.addLog(`Opening batch migration for ${type}`, 'info')
   
   batchType.value = type

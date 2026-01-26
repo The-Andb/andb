@@ -320,6 +320,8 @@ compare:
     new: 'New'
     deprecated: 'Deprecated'
     identical: 'Identical'
+  dumpReadOnly: 'Read-Only Target'
+  cannotMigrateToDump: 'Cannot migrate to a static SQL dump file. Sync operations are only allowed to live database servers.'
 
 connections:
   title: 'Database Connections'

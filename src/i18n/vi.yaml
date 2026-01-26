@@ -314,6 +314,8 @@ compare:
     new: 'Mới'
     deprecated: 'Đã xóa'
     identical: 'Giống nhau'
+  dumpReadOnly: 'Đích Chỉ Đọc'
+  cannotMigrateToDump: 'Không thể migrate vào file SQL dump tĩnh. Thao tác đồng bộ chỉ cho phép với máy chủ database trực tiếp.'
 
 connections:
   title: 'Kết nối cơ sở dữ liệu'
