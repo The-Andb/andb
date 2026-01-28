@@ -91,119 +91,104 @@ export const useAppStore = defineStore('app', () => {
   const connections = ref<DatabaseConnection[]>([])
 
   // Initialize state
+  let initPromise: Promise<void> | null = null
+
   const init = async () => {
-    const savedSettings = await storage.getSettings()
-    sidebarCollapsed.value = savedSettings.sidebarCollapsed
-    buttonStyle.value = savedSettings.buttonStyle || 'full'
-    navStyle.value = savedSettings.navStyle || 'vertical-list'
-    if (savedSettings.fontSizes) {
-      fontSizes.value = { ...fontSizes.value, ...savedSettings.fontSizes }
-    }
-    if (savedSettings.fontFamilies) {
-      fontFamilies.value = { ...fontFamilies.value, ...savedSettings.fontFamilies }
-    }
-    if (savedSettings.lastCustomFontSizes) {
-      lastCustomFontSizes.value = { ...lastCustomFontSizes.value, ...savedSettings.lastCustomFontSizes }
-    }
+    if (initPromise) return initPromise
 
-    projectManagerMode.value = savedSettings.projectManagerMode || false
-    autoCollapseColumns.value = savedSettings.autoCollapseColumns !== undefined ? savedSettings.autoCollapseColumns : true
-
-    // If we loaded 'custom', we should ensure fontSizes reflects the loaded values (already done by fontSizes loading logic above)
-    // If we loaded a profile, apply it to ensure consistency.
-
-    selectedConnectionId.value = savedSettings.lastSelectedConnectionId || '1' // Fallback to DEV (id 1) if none
-
-    const savedConnections = await storage.getConnections()
-    if (savedConnections.length > 0) {
-      connections.value = savedConnections
-
-      // Migration: Claim orphan connections for "The Base One"
-      // Since we moved from Global View to Atomic, old connections might not be linked to 'default' explicitly.
-      const projectsStore = useProjectsStore()
-      // Ensure projects are loaded
-      if (projectsStore.projects.length === 0) {
-        await projectsStore.reloadData()
+    initPromise = (async () => {
+      const savedSettings = await storage.getSettings()
+      sidebarCollapsed.value = savedSettings.sidebarCollapsed
+      buttonStyle.value = savedSettings.buttonStyle || 'full'
+      navStyle.value = savedSettings.navStyle || 'vertical-list'
+      if (savedSettings.fontSizes) {
+        fontSizes.value = { ...fontSizes.value, ...savedSettings.fontSizes }
+      }
+      if (savedSettings.fontFamilies) {
+        fontFamilies.value = { ...fontFamilies.value, ...savedSettings.fontFamilies }
+      }
+      if (savedSettings.lastCustomFontSizes) {
+        lastCustomFontSizes.value = { ...lastCustomFontSizes.value, ...savedSettings.lastCustomFontSizes }
       }
 
-      const allLinkedConnectionIds = new Set<string>()
-      projectsStore.projects.forEach(p => {
-        p.connectionIds.forEach(id => allLinkedConnectionIds.add(id))
-      })
+      projectManagerMode.value = savedSettings.projectManagerMode || false
+      autoCollapseColumns.value = savedSettings.autoCollapseColumns !== undefined ? savedSettings.autoCollapseColumns : true
 
-      const orphanConnectionIds = connections.value
-        .filter(c => !allLinkedConnectionIds.has(c.id))
-        .map(c => c.id)
+      // If we loaded 'custom', we should ensure fontSizes reflects the loaded values (already done by fontSizes loading logic above)
+      // If we loaded a profile, apply it to ensure consistency.
 
-      if (orphanConnectionIds.length > 0) {
+      selectedConnectionId.value = savedSettings.lastSelectedConnectionId || '1' // Fallback to DEV (id 1) if none
+
+      const savedConnections = await storage.getConnections()
+      // storage.getConnections() now handles deduplication internally via _deduplicateConnections
+      if (savedConnections.length > 0) {
+        connections.value = savedConnections
+      } else {
+        // Default demo connections
+        connections.value = [
+          {
+            id: '1',
+            name: 'DEV',
+            host: '127.0.0.1',
+            port: 3306,
+            database: 'dev_database',
+            username: 'root',
+            password: 'root123',
+            status: 'idle',
+            environment: 'DEV'
+          },
+          {
+            id: '2',
+            name: 'STAGE',
+            host: '127.0.0.1',
+            port: 3307,
+            database: 'stage_database',
+            username: 'root',
+            password: 'root123',
+            status: 'idle',
+            environment: 'STAGE'
+          },
+          {
+            id: '3',
+            name: 'UAT',
+            host: '127.0.0.1',
+            port: 3308,
+            database: 'uat_database',
+            username: 'root',
+            password: 'root123',
+            status: 'idle',
+            environment: 'UAT'
+          },
+          {
+            id: '4',
+            name: 'PROD',
+            host: '127.0.0.1',
+            port: 3309,
+            database: 'prod_database',
+            username: 'root',
+            password: 'root123',
+            status: 'idle',
+            environment: 'PROD'
+          }
+        ]
+
+        // Auto-assign demo connections to default project if new
+        const projectsStore = useProjectsStore()
+        if (projectsStore.projects.length === 0) {
+          await projectsStore.reloadData()
+        }
         const defaultProject = projectsStore.projects.find(p => p.id === 'default')
-        if (defaultProject) {
-          // Direct mutation of store state to trigger watchers/reactivity
-          defaultProject.connectionIds.push(...orphanConnectionIds)
-          // Force save just in case watcher deep check misses array mutation (though it shouldn't)
+        if (defaultProject && defaultProject.connectionIds.length === 0) {
+          defaultProject.connectionIds = connections.value.map(c => c.id)
           storage.saveProjects(projectsStore.projects)
         }
       }
+    })()
 
-    } else {
-      // Default demo connections
-      connections.value = [
-        {
-          id: '1',
-          name: 'DEV',
-          host: '127.0.0.1',
-          port: 3306,
-          database: 'dev_database',
-          username: 'root',
-          password: 'root123',
-          status: 'idle',
-          environment: 'DEV'
-        },
-        {
-          id: '2',
-          name: 'STAGE',
-          host: '127.0.0.1',
-          port: 3307,
-          database: 'stage_database',
-          username: 'root',
-          password: 'root123',
-          status: 'idle',
-          environment: 'STAGE'
-        },
-        {
-          id: '3',
-          name: 'UAT',
-          host: '127.0.0.1',
-          port: 3308,
-          database: 'uat_database',
-          username: 'root',
-          password: 'root123',
-          status: 'idle',
-          environment: 'UAT'
-        },
-        {
-          id: '4',
-          name: 'PROD',
-          host: '127.0.0.1',
-          port: 3309,
-          database: 'prod_database',
-          username: 'root',
-          password: 'root123',
-          status: 'idle',
-          environment: 'PROD'
-        }
-      ]
-
-      // Auto-assign demo connections to default project if new
-      const projectsStore = useProjectsStore()
-      if (projectsStore.projects.length === 0) {
-        await projectsStore.reloadData()
-      }
-      const defaultProject = projectsStore.projects.find(p => p.id === 'default')
-      if (defaultProject && defaultProject.connectionIds.length === 0) {
-        defaultProject.connectionIds = connections.value.map(c => c.id)
-        storage.saveProjects(projectsStore.projects)
-      }
+    try {
+      await initPromise
+    } finally {
+      initPromise = null
     }
   }
 
@@ -332,6 +317,17 @@ export const useAppStore = defineStore('app', () => {
     storage.updateSettings({ lastSelectedConnectionId: newValue })
   })
 
+  const generateId = () => {
+    try {
+      if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+        return window.crypto.randomUUID()
+      }
+      return 'c-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9)
+    } catch (e) {
+      return 'c-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9)
+    }
+  }
+
   // Actions
   const toggleSidebar = () => {
     sidebarCollapsed.value = !sidebarCollapsed.value
@@ -346,16 +342,49 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
-  const addConnection = (connection: Omit<DatabaseConnection, 'id'>) => {
+  const addConnection = (connection: Omit<DatabaseConnection, 'id'>, projectId?: string) => {
+    // 1. De-duplication Check
+    const existing = connections.value.find(c =>
+      c.name === connection.name &&
+      c.environment === connection.environment &&
+      c.host === connection.host &&
+      c.port === connection.port &&
+      c.database === connection.database &&
+      c.username === connection.username
+    )
+
+    if (existing) {
+      console.log(`Connection already exists: ${existing.id}`)
+      // Still need to ensure it's linked to the project
+      const projectsStore = useProjectsStore()
+      const targetProjectId = projectId || projectsStore.selectedProjectId
+      if (targetProjectId) {
+        projectsStore.addItemToProject('connection', existing.id, targetProjectId)
+      }
+      return existing
+    }
+
     const newConnection: DatabaseConnection = {
       ...connection,
-      id: Date.now().toString()
+      id: generateId()
     }
     connections.value.push(newConnection)
 
-    // Register to current project
+    // Register to specified or current project
     const projectsStore = useProjectsStore()
-    projectsStore.addItemToProject('connection', newConnection.id)
+    const targetProjectId = projectId || projectsStore.selectedProjectId
+    if (targetProjectId) {
+      // Use a robust way to ensure we link to the right project even if it's new
+      const project = projectsStore.projects.find(p => p.id === targetProjectId)
+      if (project) {
+        if (!project.connectionIds.includes(newConnection.id)) {
+          project.connectionIds.push(newConnection.id)
+        }
+      } else {
+        // Fallback for simple addition if project object isn't found in list yet
+        projectsStore.addItemToProject('connection', newConnection.id, targetProjectId)
+      }
+    }
 
     return newConnection
   }

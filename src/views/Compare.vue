@@ -71,7 +71,7 @@
              class="hidden md:flex items-center justify-center p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all disabled:opacity-50"
             :title="fetchButtonText"
           >
-            <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': loading }" />
+            <RefreshCw class="w-5 h-5" :class="{ 'animate-spin': loading && loadingAction === 'fetch' }" />
           </button>
 
           <button 
@@ -85,9 +85,9 @@
             ]"
             :title="$t('compare.runCompareTooltip')"
           >
-            <GitCompare v-if="!loading" class="w-4 h-4" />
+            <GitCompare v-if="!(loading && loadingAction === 'compare')" class="w-4 h-4" />
             <RefreshCw v-else class="w-4 h-4 animate-spin" />
-            <span v-if="appStore.buttonStyle !== 'icons'">{{ loading ? $t('compare.comparing') : (appStore.buttonStyle === 'full' ? $t('compare.compare') : $t('compare.compare')) }}</span>
+            <span v-if="appStore.buttonStyle !== 'icons'">{{ (loading && loadingAction === 'compare') ? $t('compare.comparing') : (appStore.buttonStyle === 'full' ? $t('compare.compare') : $t('compare.compare')) }}</span>
           </button>
        </div>
        
@@ -173,8 +173,44 @@
                     v-model="searchQuery"
                     type="text" 
                     :placeholder="$t('history.searchPlaceholder')"
-                    class="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white"
+                    class="w-full pl-8 pr-24 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white transition-all"
                   />
+                  
+                   <!-- Search Flags -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 space-x-0.5">
+                    <button 
+                      @click="searchFlags.caseSensitive = !searchFlags.caseSensitive"
+                      class="p-1 rounded transition-colors"
+                      :class="searchFlags.caseSensitive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'"
+                      :title="$t('common.matchCase')"
+                    >
+                      <CaseSensitive class="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      @click="searchFlags.wholeWord = !searchFlags.wholeWord"
+                      class="p-1 rounded transition-colors"
+                      :class="searchFlags.wholeWord ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'"
+                      :title="$t('common.wholeWord')"
+                    >
+                      <WholeWord class="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      @click="searchFlags.regex = !searchFlags.regex"
+                      class="p-1 rounded transition-colors"
+                      :class="searchFlags.regex ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'"
+                      :title="$t('common.useRegex')"
+                    >
+                      <Regex class="w-3.5 h-3.5" />
+                    </button>
+                    
+                    <button 
+                      v-if="searchQuery"
+                      @click="searchQuery = ''"
+                      class="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                    >
+                      <X class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
                   <button 
@@ -444,7 +480,11 @@ import {
   List,
   GitMerge,
   ArrowRightLeft,
-  GitCompare
+  GitCompare,
+  CaseSensitive,
+  WholeWord,
+  Regex,
+  X
 } from 'lucide-vue-next'
 import MigrationConfirm from '@/components/compare/MigrationConfirm.vue'
 import { useOperationsStore } from '@/stores/operations'
@@ -575,6 +615,7 @@ const getIconForType = (type: string) => {
 
 // State
 const loading = ref(false)
+const loadingAction = ref<'fetch' | 'compare' | null>(null)
 const statusMessage = ref('')
 const resultsWidth = ref(300)
 const error = ref<string | null>(null)
@@ -587,6 +628,11 @@ const selectedItem = ref<any>(null)
 const showDetailModal = ref(false)
 const selectedFilterType = ref<string>('all')
 const searchQuery = ref('')
+const searchFlags = ref({
+  caseSensitive: false,
+  wholeWord: false,
+  regex: false
+})
 const selectedStatusFilter = ref('all')
 
 const statusFilters = computed(() => [
@@ -689,9 +735,30 @@ const filteredResults = computed(() => {
   }
 
   // Filter by search query
+  // Filter by search query
   if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim()
-    filtered = filtered.filter(i => i.name.toLowerCase().includes(query))
+    const query = searchQuery.value.trim()
+    const { caseSensitive, wholeWord, regex } = searchFlags.value
+    
+    try {
+      let re: RegExp
+      if (regex) {
+         re = new RegExp(query, caseSensitive ? '' : 'i')
+      } else {
+         // Escape regex chars if not regex mode
+         const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+         if (wholeWord) {
+            re = new RegExp(`\\b${escaped}\\b`, caseSensitive ? '' : 'i')
+         } else {
+            re = new RegExp(escaped, caseSensitive ? '' : 'i')
+         }
+      }
+      
+      filtered = filtered.filter(i => re.test(i.name))
+    } catch (e) {
+      // Invalid regex fallback to simple include
+      filtered = filtered.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
+    }
   }
 
   return filtered
@@ -724,6 +791,8 @@ const runComparison = async (refresh: boolean = false) => {
   if (!activePair.value) return
   
   loading.value = true
+  loadingAction.value = refresh ? 'fetch' : 'compare'
+  
   // consoleStore.setVisibility(true) // Only open console on manual run/error, not initial load
   statusMessage.value = t('compare.initializing')
   consoleStore.clearLogs()

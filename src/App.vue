@@ -13,7 +13,7 @@ import { useConsoleStore } from '@/stores/console'
 import { useNotificationStore } from '@/stores/notification'
 import { useSidebarStore } from '@/stores/sidebar'
 import Andb from '@/utils/andb'
-import { useI18n } from 'vue-i18n'
+
 import UpdateModal from '@/components/general/UpdateModal.vue'
 
 const appStore = useAppStore()
@@ -21,12 +21,15 @@ const updaterStore = useUpdaterStore()
 const consoleStore = useConsoleStore()
 const notificationStore = useNotificationStore()
 const sidebarStore = useSidebarStore()
-const { t } = useI18n()
+
 
 // Global Refresh Handlers
 const handleDatabaseRefreshRequested = async (e: any) => {
   const { env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  const conn = appStore.connections.find(c => 
+    c.environment === env && 
+    (c.database === db || c.database?.toLowerCase() === db?.toLowerCase() || c.name === db || c.name?.toLowerCase() === db?.toLowerCase())
+  )
   if (!conn) return
 
   try {
@@ -52,7 +55,10 @@ const handleDatabaseRefreshRequested = async (e: any) => {
 
 const handleCategoryRefreshRequested = async (e: any) => {
   const { type, env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  const conn = appStore.connections.find(c => 
+    c.environment === env && 
+    (c.database === db || c.database?.toLowerCase() === db?.toLowerCase() || c.name === db || c.name?.toLowerCase() === db?.toLowerCase())
+  )
   if (!conn) return
 
   try {
@@ -71,7 +77,10 @@ const handleCategoryRefreshRequested = async (e: any) => {
 
 const handleObjectRefreshRequested = async (e: any) => {
   const { name, type, env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  const conn = appStore.connections.find(c => 
+    c.environment === env && 
+    (c.database === db || c.database?.toLowerCase() === db?.toLowerCase() || c.name === db || c.name?.toLowerCase() === db?.toLowerCase())
+  )
   if (!conn) return
 
   try {
@@ -79,7 +88,7 @@ const handleObjectRefreshRequested = async (e: any) => {
     consoleStore.setVisibility(true)
     
     await Andb.export(conn, null as any, { type: type as any, environment: conn.environment, name })
-      .then(res => consoleStore.addLog(`Fetched ${name}`, 'success'))
+      .then(() => consoleStore.addLog(`Fetched ${name}`, 'success'))
       
     sidebarStore.triggerRefresh()
     notificationStore.add({ type: 'success', title: 'Refreshed', message: `${name} updated` })
@@ -113,6 +122,17 @@ onMounted(() => {
     // Initial check (quietly)
     // updaterStore.checkForUpdates() // Optional, main process does it on startup
   }
+
+  // FAILSAFE: Verify Project Selection state after mounting
+  setTimeout(() => {
+     // Recover Name from storage
+     const lastPName = localStorage.getItem('andb_last_pname')
+     const lastPId = localStorage.getItem('andb_last_pid')
+     console.log('[App] Failsafe Check:', { lastPName, lastPId })
+     
+     // Note: Store init happens before this, but let's just log verification.
+     // Actual recovery logic is better placed in the store itself, which we improved.
+  }, 1000)
 })
 
 onUnmounted(() => {

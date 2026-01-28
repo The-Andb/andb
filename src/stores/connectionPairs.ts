@@ -168,41 +168,57 @@ export const useConnectionPairsStore = defineStore('connectionPairs', () => {
     const project = projectsStore.currentProject
     if (!project) return []
 
-    // 1. Get environments enabled for this project and sort by order
-    const sortedEnvs = [...enabledEnvironments.value].sort((a, b) => a.order - b.order)
-
-    if (sortedEnvs.length < 2) return []
-
-    // 2. Auto-generate sequential "One Way" migrate pairs
-    // Logic: Env[i] -> Env[i+1] (Low order to High order)
-    const autoPairs: ConnectionPair[] = []
     const appStore = useAppStore()
 
+    // 1. Get project-specific custom pairs (Explicitly linked to this project)
+    const customPairs = connectionPairs.value.filter(p => project.pairIds.includes(p.id))
+
+    // 2. Get project-specific auto-generated sequential paths
+    // Only use environments that have at least one connection IN THIS PROJECT
+    const sortedEnvs = [...environments.value]
+      .filter(env => project.enabledEnvironmentIds.includes(env.id))
+      .filter(env => project.connectionIds.some(cid => {
+        const conn = appStore.connections.find(c => c.id === cid)
+        return conn && conn.environment === env.id
+      }))
+      .sort((a, b) => a.order - b.order)
+
+    if (sortedEnvs.length < 2) return customPairs
+
+    const autoPairs: ConnectionPair[] = []
     for (let i = 0; i < sortedEnvs.length - 1; i++) {
       const source = sortedEnvs[i]
       const target = sortedEnvs[i + 1]
 
-      // Look for a custom override pair if it exists (for specific connection mapping)
-      const existing = connectionPairs.value.find(p => p.sourceEnv === source.id && p.targetEnv === target.id)
+      // Check if there's already a custom pair for this specific env-to-env path
+      const existing = customPairs.find(p => p.sourceEnv === source.id && p.targetEnv === target.id)
+      if (existing) continue
 
-      // Auto-pick logic for specific connection IDs
-      const autoSourceConn = appStore.connections.find(c => c.environment === source.id)?.id || ''
-      const autoTargetConn = appStore.connections.find(c => c.environment === target.id)?.id || ''
+      // Auto-pick connections ONLY from the current project
+      const autoSourceConn = project.connectionIds.find(cid => {
+        const conn = appStore.connections.find(c => c.id === cid)
+        return conn && conn.environment === source.id
+      }) || ''
+
+      const autoTargetConn = project.connectionIds.find(cid => {
+        const conn = appStore.connections.find(c => c.id === cid)
+        return conn && conn.environment === target.id
+      }) || ''
 
       autoPairs.push({
-        id: existing?.id || `auto-${source.id}-${target.id}`,
-        name: existing?.name || `${source.name} to ${target.name}`,
+        id: `auto-${source.id}-${target.id}`,
+        name: `${source.name} to ${target.name}`,
         sourceEnv: source.id,
         targetEnv: target.id,
-        sourceConnectionId: existing?.sourceConnectionId || autoSourceConn,
-        targetConnectionId: existing?.targetConnectionId || autoTargetConn,
-        description: existing?.description || `Auto-generated migration path from ${source.name} to ${target.name}`,
-        isDefault: existing?.isDefault || i === 0,
-        status: existing?.status || 'idle'
+        sourceConnectionId: autoSourceConn,
+        targetConnectionId: autoTargetConn,
+        description: `Auto-generated migration path from ${source.name} to ${target.name}`,
+        isDefault: i === 0,
+        status: 'idle'
       })
     }
 
-    return autoPairs
+    return [...customPairs, ...autoPairs]
   })
 
   // Auto-select first pair if current one becomes invalid (e.g. project switch)
@@ -309,6 +325,23 @@ export const useConnectionPairsStore = defineStore('connectionPairs', () => {
   }
 
   const addConnectionPair = (pair: Omit<ConnectionPair, 'id'>) => {
+    // 1. De-duplication Check
+    const existing = connectionPairs.value.find(p =>
+      p.name === pair.name &&
+      p.sourceEnv === pair.sourceEnv &&
+      p.targetEnv === pair.targetEnv &&
+      p.sourceConnectionId === pair.sourceConnectionId &&
+      p.targetConnectionId === pair.targetConnectionId
+    )
+
+    if (existing) {
+      console.log(`Pair already exists: ${existing.id}`)
+      // Still need to ensure it's linked to the project
+      const projectsStore = useProjectsStore()
+      projectsStore.addItemToProject('pair', existing.id)
+      return existing
+    }
+
     const newPair: ConnectionPair = {
       ...pair,
       id: Date.now().toString()

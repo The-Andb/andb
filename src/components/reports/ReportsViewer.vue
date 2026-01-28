@@ -136,7 +136,7 @@
                     <div class="p-6 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
                         <h3 class="text-lg font-bold flex items-center gap-2 uppercase">{{ key }}</h3>
                         <span class="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                            {{ getSectionLabel(key) }}
+                            {{ getSectionLabel(String(key)) }}
                         </span>
                     </div>
                     
@@ -196,7 +196,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { ArrowLeft, RefreshCw, FileText, FileX } from 'lucide-vue-next'
 import Highcharts from 'highcharts'
 
@@ -376,7 +376,7 @@ const renderChart = (chartConfig: any) => {
              }
         },
         series: chartConfig.series
-    });
+    } as any);
 }
 
 const selectReport = async (report: any) => {

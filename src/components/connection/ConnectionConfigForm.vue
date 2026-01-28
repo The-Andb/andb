@@ -53,6 +53,7 @@
                         <option value="mysql">{{ $t('connections.types.mysql') }}</option>
                         <option value="postgres">{{ $t('connections.types.postgres') }}</option>
                         <option value="sqlite">{{ $t('connections.types.sqlite') }}</option>
+                        <option value="dump">{{ $t('connections.types.dump') }}</option>
                     </select>
                     <ChevronDown class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none group-hover:text-primary-500 transition-colors" />
                  </div>

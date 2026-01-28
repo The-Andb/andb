@@ -27,10 +27,30 @@
               <h3 class="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight">
               ALL TEMPLATES
               </h3>
-              <button @click="openForm()" class="btn btn-primary flex items-center">
-              <Plus class="w-4 h-4 mr-2" />
-              {{ $t('settings.templates.add') }}
-              </button>
+              <div class="flex items-center gap-2">
+                  <!-- Bulk Actions -->
+                  <div v-if="selectedTemplates.length > 0" class="flex items-center gap-2 mr-2 animate-in fade-in zoom-in duration-200">
+                      <span class="text-xs text-gray-500 font-bold">{{ selectedTemplates.length }} selected</span>
+                      <button @click="bulkTestTemplates"
+                              class="btn btn-secondary text-xs px-3 py-1.5 flex items-center gap-1">
+                          <ShieldQuestion class="w-3.5 h-3.5" />
+                          Test All
+                      </button>
+                      <button @click="bulkDeleteTemplates"
+                              class="btn btn-danger text-xs px-3 py-1.5 flex items-center gap-1">
+                          <Trash2 class="w-3.5 h-3.5" />
+                          Delete
+                      </button>
+                      <button @click="clearSelection"
+                              class="text-xs text-gray-400 hover:text-gray-600 px-2 transition-colors">
+                          Clear
+                      </button>
+                  </div>
+                  <button @click="openForm()" class="btn btn-primary flex items-center">
+                    <Plus class="w-4 h-4 mr-2" />
+                    {{ $t('settings.templates.add') }}
+                  </button>
+              </div>
           </div>
 
           <div class="card overflow-hidden border border-gray-200 dark:border-gray-800 rounded-2xl">
@@ -38,6 +58,14 @@
               <table class="w-full">
                   <thead class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-800">
                   <tr>
+                      <th class="px-4 py-3 text-left w-10">
+                        <input
+                          type="checkbox"
+                          :checked="isAllSelected"
+                          @change="toggleSelectAll"
+                          class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-800"
+                        />
+                      </th>
                       <th class="px-6 py-3 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       {{ $t('connections.templateName') }}
                       </th>
@@ -56,7 +84,16 @@
                   <tr v-for="template in templates" 
                       :key="template.id"
                       class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+                      :class="{ 'bg-primary-50 dark:bg-primary-900/10': selectedTemplates.includes(template.id) }"
                   >
+                      <td class="px-4 py-4 whitespace-nowrap w-10">
+                        <input
+                          type="checkbox"
+                          :value="template.id"
+                          v-model="selectedTemplates"
+                          class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-800"
+                        />
+                      </td>
                       <td class="px-6 py-4 whitespace-nowrap">
                       <div class="flex items-center">
                           <div class="flex-shrink-0 h-10 w-10">
@@ -220,6 +257,43 @@ const { t } = useI18n()
 const testingTemplates = ref(new Set<string>())
 const testResults = ref<Record<string, { success: boolean, message?: string }>>({})
 
+// Selection state for bulk operations
+const selectedTemplates = ref<string[]>([])
+
+const isAllSelected = computed(() => {
+    return templates.value.length > 0 && 
+           templates.value.every(t => selectedTemplates.value.includes(t.id))
+})
+
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedTemplates.value = []
+    } else {
+        selectedTemplates.value = templates.value.map(t => t.id)
+    }
+}
+
+const clearSelection = () => {
+    selectedTemplates.value = []
+}
+
+const bulkTestTemplates = async () => {
+    for (const id of selectedTemplates.value) {
+        const template = templates.value.find(t => t.id === id)
+        if (template) {
+            await testTemplate(template)
+        }
+    }
+}
+
+const bulkDeleteTemplates = () => {
+    const count = selectedTemplates.value.length
+    if (confirm(t('connections.confirmBulkDelete', { count }))) {
+        selectedTemplates.value.forEach(id => store.removeTemplate(id))
+        clearSelection()
+    }
+}
+
 // State
 const showAddForm = ref(false)
 const showPassword = ref(false)
@@ -232,7 +306,7 @@ const form = ref({
     database: '',
     username: 'root',
     password: '',
-    type: 'mysql' as 'mysql' | 'postgres' | 'sqlite'
+    type: 'mysql' as 'mysql' | 'postgres' | 'sqlite' | 'dump'
 })
 
 const openForm = (template?: ConnectionTemplate) => {

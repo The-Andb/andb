@@ -37,9 +37,10 @@
         </button>
         <button
           type="button"
-          class="flex items-center justify-center rounded-md bg-primary-600 hover:bg-primary-500 text-white px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-all border border-primary-600 shadow-md hover:shadow-lg active:scale-95 items-center gap-1.5"
-          :disabled="loading"
+          class="flex items-center justify-center rounded-md bg-primary-600 hover:bg-primary-500 text-white px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-all border border-primary-600 shadow-md hover:shadow-lg active:scale-95 items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="loading || targetIsStatic"
           @click="$emit('confirm')"
+          :title="targetIsStatic ? 'Cannot migrate to a static file' : ''"
         >
           <Zap class="w-3 h-3" :class="{ 'animate-spin': loading }" />
           {{ loading ? $t('common.processing') : (isBatchMode ? $t('migration.actionBatch') : $t('migration.actionSingle')) }}
@@ -119,6 +120,10 @@
                     <AlertTriangle class="w-3 h-3 shrink-0" />
                     <span class="truncate max-w-[300px]">{{ $t('migration.warning') }}</span>
                  </div>
+                 <div v-if="targetIsStatic" class="ml-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700/50 text-[10px] font-bold text-red-600 dark:text-red-400 normal-case tracking-normal">
+                    <AlertTriangle class="w-3 h-3 shrink-0" />
+                    <span class="truncate max-w-[300px]">Migration to Static Dump is not supported. Use SQL Preview to copy script manually.</span>
+                 </div>
                </span>
                <button 
                   v-if="sqlScript && !fetchingSql"
@@ -197,6 +202,7 @@ const props = defineProps<{
   fetchingSql?: boolean
   sqlMap?: Record<string, string>
   inline?: boolean
+  targetIsStatic?: boolean
 }>()
 
 const copied = ref(false)

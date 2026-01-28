@@ -83,6 +83,7 @@
           <!-- Actions -->
           <div class="flex items-center space-x-2">
             <button
+              v-if="!isDumpPair(pair)"
               @click="testPair(pair)"
               class="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
               :title="$t('connectionPairs.testConnection')"
@@ -90,6 +91,7 @@
             >
               <ShieldQuestion class="w-4 h-4" />
             </button>
+            <div v-else class="w-6"></div>
             <button
               @click="setAsDefault(pair)"
               class="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400"
@@ -158,6 +160,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, ArrowRight, ShieldQuestion, Star, Copy, Trash2 } from 'lucide-vue-next'
 import { useConnectionPairsStore, type ConnectionPair } from '@/stores/connectionPairs'
 import { useAppStore } from '@/stores/app'
+import { useProjectsStore } from '@/stores/projects'
 
 const { t } = useI18n()
 const connectionPairsStore = useConnectionPairsStore()
@@ -181,7 +184,14 @@ const connections = computed(() => appStore.connections)
 const defaultPair = computed(() => connectionPairsStore.defaultPair)
 
 const getConnectionsByEnv = (envName: string) => {
-  return connections.value.filter(c => c.environment === envName)
+  const projectsStore = useProjectsStore()
+  const project = projectsStore.currentProject
+  if (!project) return []
+
+  return connections.value.filter(c => 
+    c.environment === envName && 
+    project.connectionIds.includes(c.id)
+  )
 }
 
 const addConnectionPair = () => {
@@ -264,6 +274,12 @@ const updateTarget = (pair: ConnectionPair, connectionId: string) => {
     pair.targetEnv = connection.environment
     updatePair(pair)
   }
+}
+
+const isDumpPair = (pair: ConnectionPair) => {
+  const source = connections.value.find(c => c.id === pair.sourceConnectionId)
+  const target = connections.value.find(c => c.id === pair.targetConnectionId)
+  return source?.type === 'dump' || target?.type === 'dump'
 }
 
 const getPairStatusClass = (pair: ConnectionPair) => {

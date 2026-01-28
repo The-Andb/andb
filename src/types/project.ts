@@ -6,6 +6,7 @@ export interface Project {
   color?: string
   connectionIds: string[]
   pairIds: string[]
+  isActive?: boolean
   enabledEnvironmentIds: string[]
   pinnedColumnTypes?: string[]
   settings?: {

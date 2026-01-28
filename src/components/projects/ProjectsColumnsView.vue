@@ -62,19 +62,21 @@
                     </button>
                 </div>
                 <!-- Refresh Button for Database/Types -->
-                <button 
-                  v-else-if="node.type === 'databases' || node.type === 'types'"
-                  @click.stop="refreshConnection(node)"
-                  class="p-1 rounded transition-colors"
-                  :class="[
-                    isDumpNode(node)
-                      ? 'text-orange-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/40' 
-                      : 'text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/40'
-                  ]"
-                  :title="isDumpNode(node) ? 'Reload File' : 'Refresh from Database'"
-                >
-                  <RefreshIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshingNodeId === node.id }" />
-                </button>
+                <div v-else-if="node.type === 'databases' || node.type === 'types'" class="flex items-center gap-1.5">
+                    <span v-if="isDumpNode(node)" class="px-1 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400 text-[7px] font-black border border-orange-200 dark:border-orange-800/20">STATIC</span>
+                    <button 
+                      @click.stop="refreshConnection(node)"
+                      class="p-1 rounded transition-colors"
+                      :class="[
+                        isDumpNode(node)
+                          ? 'text-orange-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/40' 
+                          : 'text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/40'
+                      ]"
+                      :title="isDumpNode(node) ? 'Reload File' : 'Refresh from Database'"
+                    >
+                      <RefreshIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshingNodeId === node.id }" />
+                    </button>
+                </div>
             </template>
         </MillerColumnsView>
     </div>

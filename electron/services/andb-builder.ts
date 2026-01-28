@@ -263,7 +263,7 @@ export class AndbBuilder {
           envName: conn.environment,
           host: host,
           port: conn.port || 3306,
-          database: mail ? undefined : conn.database,
+          database: mail ? undefined : (conn.database || conn.name), // Fallback to connection name for storage isolation
           user: conn.username,
           type: isDump ? 'dump' : ((conn as any).type || 'mysql'), // Ensure Core uses 'dump' driver for .sql files
           dumpPath: host,
@@ -299,7 +299,7 @@ export class AndbBuilder {
           ? sourceConn
           : (trgEnv && currentEnv === trgEnv ? targetConn : null)
 
-        return conn?.database || ''
+        return conn?.database || conn?.name || ''
       },
 
       /**
@@ -659,8 +659,8 @@ export class AndbBuilder {
 
     const srcEnv = sourceConn.environment
     const destEnv = targetConn.environment
-    const dbName = sourceConn.database
-    const destDbName = targetConn.database
+    const dbName = sourceConn.database || sourceConn.name
+    const destDbName = targetConn.database || targetConn.name
 
     const results = await storage.getComparisons(srcEnv, destEnv, dbName, ddlType);
 

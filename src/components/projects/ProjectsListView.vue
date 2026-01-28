@@ -359,7 +359,7 @@ const isQuickDumpModalOpen = ref(false)
           <div class="space-y-1 mb-8 relative z-10">
             <h3 v-if="renamingId !== project.id" class="text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center gap-2">
               {{ project.name }}
-              <span v-if="projectsStore.selectedProjectId === project.id" class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              <span v-if="project.isActive" class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             </h3>
             <div v-else class="relative z-50">
               <input 
@@ -481,7 +481,7 @@ const isQuickDumpModalOpen = ref(false)
             <div class="md:col-span-5 space-y-0.5">
               <h3 v-if="renamingId !== project.id" class="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2 truncate">
                 {{ project.name }}
-                <span v-if="projectsStore.selectedProjectId === project.id" class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                <span v-if="project.isActive" class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
               </h3>
               <div v-else class="relative z-50">
                 <input 

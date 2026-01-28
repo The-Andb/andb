@@ -8,11 +8,17 @@ const loadURL = serve({ directory: 'dist' })
 let loadURL_unused: any; // Keep this to avoid breaking previous logic check
 
 const isDev = process.env.NODE_ENV === 'development'
+const isTest = process.env.NODE_ENV === 'test'
 
-// Set separate app name and userData path for development to isolate data (DB, Logs)
-if (isDev) {
+// Set separate app name and userData path to isolate data (DB, Logs)
+if (isTest) {
+  app.name = 'The Andb Test'
+  const userDataPath = app.getPath('userData')
+  if (!userDataPath.endsWith('_test')) {
+    app.setPath('userData', userDataPath + '_test')
+  }
+} else if (isDev) {
   app.name = 'The Andb Dev'
-  // Force a different userData path for dev to be 100% sure
   const userDataPath = app.getPath('userData')
   if (!userDataPath.endsWith('_dev')) {
     app.setPath('userData', userDataPath + '_dev')
@@ -26,7 +32,7 @@ const Logger = require('andb-logger')
 try {
   let loggerInstance;
   const logConfig = {
-    mode: isDev ? 'DEV' : 'PROD',
+    mode: isTest ? 'TEST' : (isDev ? 'DEV' : 'PROD'),
     dirpath: app.getPath('userData'),
     logName: 'ANDB-UI'
   }
@@ -63,7 +69,7 @@ import { autoUpdater } from 'electron-updater'
 
 // Set log level for updater
 autoUpdater.logger = require('andb-logger').getInstance({
-  mode: isDev ? 'DEV' : 'PROD',
+  mode: isTest ? 'TEST' : (isDev ? 'DEV' : 'PROD'),
   dirpath: app.getPath('userData'),
   logName: 'UPDATER'
 })

@@ -110,8 +110,44 @@
                     v-model="searchQuery"
                     type="text" 
                     :placeholder="$t('history.searchPlaceholder')"
-                    class="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white"
+                    class="w-full pl-8 pr-24 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-white transition-all"
                   />
+                  
+                  <!-- Search Flags -->
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 space-x-0.5">
+                    <button 
+                      @click="searchFlags.caseSensitive = !searchFlags.caseSensitive"
+                      class="p-1 rounded transition-colors"
+                      :class="searchFlags.caseSensitive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'"
+                      :title="$t('common.matchCase')"
+                    >
+                      <CaseSensitive class="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      @click="searchFlags.wholeWord = !searchFlags.wholeWord"
+                      class="p-1 rounded transition-colors"
+                      :class="searchFlags.wholeWord ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'"
+                      :title="$t('common.wholeWord')"
+                    >
+                      <WholeWord class="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      @click="searchFlags.regex = !searchFlags.regex"
+                      class="p-1 rounded transition-colors"
+                      :class="searchFlags.regex ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'"
+                      :title="$t('common.useRegex')"
+                    >
+                      <Regex class="w-3.5 h-3.5" />
+                    </button>
+                    
+                    <button 
+                      v-if="searchQuery"
+                      @click="searchQuery = ''"
+                      class="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                    >
+                      <X class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
               
@@ -152,10 +188,18 @@
                     :class="{ 'bg-white dark:bg-gray-800 shadow-sm border border-primary-500/20 ring-1 ring-primary-500/10': selectedItem?.name === item.name }"
                   >
                     <div class="min-w-0 pr-2 flex-1">
-                      <div class="flex items-center justify-between">
-                        <div class="font-mono truncate text-gray-900 dark:text-gray-100" :class="{ 'font-bold': selectedItem?.name === item.name }" :style="{ fontSize: appStore.fontSizes.ddlName + 'px' }">
+                      <div class="flex items-center">
+                        <!-- Icon -->
+                        <component 
+                          :is="getIconForType(item.type)" 
+                          class="w-3.5 h-3.5 mr-2 shrink-0 transition-colors"
+                          :class="selectedItem?.name === item.name ? 'text-primary-500' : 'text-gray-400 group-hover:text-primary-400'"
+                        />
+                        
+                        <div class="font-mono truncate text-gray-900 dark:text-gray-100 flex-1" :class="{ 'font-bold': selectedItem?.name === item.name }" :style="{ fontSize: appStore.fontSizes.ddlName + 'px' }">
                           {{ item.name }}
                         </div>
+                        
                         <span v-if="item.updated_at" class="text-[9px] text-gray-400 shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           {{ formatTimeAgo(item.updated_at).replace(' ago', '') }}
                         </span>
@@ -314,7 +358,11 @@ import {
   Network,
   PanelBottom,
   Code2,
-  LayoutTemplate
+  LayoutTemplate,
+  CaseSensitive,
+  WholeWord,
+  Regex,
+  X
 } from 'lucide-vue-next'
 import { useNotificationStore } from '@/stores/notification'
 import { useSidebarStore } from '@/stores/sidebar'
@@ -369,10 +417,15 @@ const selectedConnectionId = computed({
 
 const activeConnectionName = computed(() => {
   const conn = appStore.connections.find(c => c.id === appStore.selectedConnectionId)
-  return conn ? `${conn.environment}: ${conn.database}` : t('schema.noConnection')
+  return conn ? `${conn.environment}: ${conn.database || conn.name}` : t('schema.noConnection')
 })
 const selectedFilterType = ref('all')
 const searchQuery = ref('')
+const searchFlags = ref({
+  caseSensitive: false,
+  wholeWord: false,
+  regex: false
+})
 const selectedItem = ref<any>(null)
 
 const schemaData = ref({
@@ -406,8 +459,28 @@ const filteredResults = computed(() => {
   }
 
   if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase().trim()
-    filtered = filtered.filter(i => i.name.toLowerCase().includes(query))
+    const query = searchQuery.value.trim()
+    const { caseSensitive, wholeWord, regex } = searchFlags.value
+    
+    try {
+      let re: RegExp
+      if (regex) {
+         re = new RegExp(query, caseSensitive ? '' : 'i')
+      } else {
+         // Escape regex chars if not regex mode
+         const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+         if (wholeWord) {
+            re = new RegExp(`\\b${escaped}\\b`, caseSensitive ? '' : 'i')
+         } else {
+            re = new RegExp(escaped, caseSensitive ? '' : 'i')
+         }
+      }
+      
+      filtered = filtered.filter(i => re.test(i.name))
+    } catch (e) {
+      // Invalid regex fallback to simple include
+      filtered = filtered.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
+    }
   }
 
   return filtered
@@ -773,7 +846,7 @@ const loadSchema = async (forceRefresh = false) => {
               environment: conn.environment
             })
               .then(res => {
-                consoleStore.addLog(`Fetched ${res.data?.length || 0} ${type}`, 'success')
+                consoleStore.addLog(`Fetched ${res.count || 0} ${type}`, 'success')
                 return res
               })
           ))
@@ -830,16 +903,35 @@ const loadSchema = async (forceRefresh = false) => {
     {
       // ... cache fetch ...
       // CACHE FETCH: Load from SQLite via Andb.getSchemas()
-      const allSchemas = await Andb.getSchemas()
-      // ... same as before logic ...
-      const envData = allSchemas?.find((e: any) => e.name === conn.environment)
-      const dbData = envData?.databases?.find((d: any) => d.name === conn.database) 
+      console.log('[GlobalSchemaView] loadSchema called. ConnId:', selectedConnectionId.value, 'Filter:', selectedFilterType.value)
+      
+      // The 'conn' variable is already defined at the top of loadSchema, so we don't redefine it here.
+      // If it was null, we would have returned earlier.
 
+      const allSchemas = await Andb.getSchemas()
+      console.log('[GlobalSchemaView] Fetched schemas:', allSchemas?.length, 'environments')
+
+      const envData = allSchemas?.find((e: any) => e.name === conn.environment)
+      if (!envData) console.warn('[GlobalSchemaView] Environment not found in schemas:', conn.environment)
+
+      const targetDbName = conn.database || conn.name
+      // Try exact, then case-insensitive match for both Name and Database
+      const dbData = envData?.databases?.find((d: any) => {
+         const dName = d.name.toLowerCase()
+         return dName === targetDbName.toLowerCase() || 
+                (conn.name && dName === conn.name.toLowerCase()) ||
+                (conn.database && dName === conn.database.toLowerCase())
+      })
+      
+      console.log('[GlobalSchemaView] Looking for DB:', targetDbName, 'Found:', !!dbData, 'In env:', conn.environment) 
 
       if (dbData) {
         // Set last updated time from DB metadata
         selectedDbLastUpdated.value = dbData.lastUpdated || null
+
+        console.log('[GlobalSchemaView] DB Data counts - Tables:', dbData.tables?.length, 'Procs:', dbData.procedures?.length)
         
+        // Update the reactive state (source of truth for computed 'allResults')
         schemaData.value = {
           tables: dbData.tables || [],
           procedures: dbData.procedures || [],
@@ -847,11 +939,23 @@ const loadSchema = async (forceRefresh = false) => {
           views: dbData.views || [],
           triggers: dbData.triggers || []
         }
+        
+        // No need to manually assign to allResults (it's computed!)
+        // Sorting and filtering is handled by 'filteredResults' computed property
       } else {
         selectedDbLastUpdated.value = null
-        // No data in cache
+        // Clear data
         schemaData.value = {
-          tables: [], procedures: [], functions: [], views: [], triggers: []
+          tables: [],
+          procedures: [],
+          functions: [],
+          views: [],
+          triggers: []
+        }
+        
+        if (conn.status === 'connected') {
+            // Auto-refresh if empty?
+            // console.log('Auto-triggering refresh...')
         }
       }
     }
@@ -958,7 +1062,11 @@ const downloadDDL = () => {
 // Event Handlers for Sidebar
 const handleCategorySelected = (e: any) => {
   const { type, env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  // SUPPORT DUMP: Flexible matching for database name/connection name
+  const conn = appStore.connections.find(c => 
+    c.environment === env && 
+    (c.database === db || c.database?.toLowerCase() === db?.toLowerCase() || c.name === db || c.name?.toLowerCase() === db?.toLowerCase())
+  )
   if (conn) {
     selectedConnectionId.value = conn.id
     selectedFilterType.value = type
@@ -968,7 +1076,11 @@ const handleCategorySelected = (e: any) => {
 
 const handleObjectSelected = (e: any) => {
   const { name, type, env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  // SUPPORT DUMP: Flexible matching
+  const conn = appStore.connections.find(c => 
+    c.environment === env && 
+    (c.database === db || c.database?.toLowerCase() === db?.toLowerCase() || c.name === db || c.name?.toLowerCase() === db?.toLowerCase())
+  )
   if (conn) {
     const connIdChanged = selectedConnectionId.value !== conn.id
     selectedConnectionId.value = conn.id
@@ -1003,7 +1115,10 @@ const handleObjectSelected = (e: any) => {
 
 const handleDatabaseSelected = (e: any) => {
   const { env, db } = e.detail
-  const conn = appStore.connections.find(c => c.environment === env && c.database === db)
+  const conn = appStore.connections.find(c => 
+    c.environment === env && 
+    (c.database === db || c.database?.toLowerCase() === db?.toLowerCase() || c.name === db || c.name?.toLowerCase() === db?.toLowerCase())
+  )
   if (conn) {
     selectedConnectionId.value = conn.id
     selectedFilterType.value = 'all'

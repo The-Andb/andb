@@ -68,8 +68,10 @@ const statusMessages = [
 ]
 
 onMounted(() => {
-        router.push('/')
-  return;
+  if (import.meta.env.DEV) {
+    router.push('/')
+    return
+  }
   // Simulate loading progress
   let currentStep = 0
   const interval = setInterval(() => {

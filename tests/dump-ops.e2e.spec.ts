@@ -2,7 +2,7 @@ import { _electron as electron, test, expect } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 
-test.describe.skip('Dump File Operations', () => {
+test.describe('Dump File Operations', () => {
   let app: any;
   let window: any;
   const dumpFilePath = path.join(__dirname, 'assets', 'demo-dump.sql');
@@ -119,7 +119,7 @@ test.describe.skip('Dump File Operations', () => {
 
     // Verify it appears in the list
     await expect(window.locator('text=Demo Dump')).toBeVisible({ timeout: 10000 });
-    await expect(window.locator('text=SL')).toBeVisible(); // Or whatever badge Use for Dump? Wait, code said "MY" for mysql by default, Dump might fallback or have special badge? 
+    await expect(window.locator('text=DU')).toBeVisible();
     // In ConnectionManager.vue:
     // <span v-else class="text-[10px] font-black">MY</span>
     // ConnectionForm sets type='dump'.

@@ -51,23 +51,78 @@ const getStorage = () => {
   if (typeof window !== 'undefined' && (window as any).electronAPI) {
     return (window as any).electronAPI.storage
   }
-  // Return a dummy object to avoid crash, actual calls will still fail but with better error or just no-op
+
+  // Web/Dev Mode Fallback (LocalStorage)
   return {
-    get: async () => ({ success: false, error: 'electronAPI not available' }),
-    set: async () => ({ success: false, error: 'electronAPI not available' }),
-    delete: async () => ({ success: false, error: 'electronAPI not available' })
+    get: async (key: string) => {
+      try {
+        const value = localStorage.getItem(`andb_${key}`)
+        console.log(`[Storage] GET ${key}:`, value ? 'Found' : 'Null', value ? JSON.parse(value) : '')
+        return { success: true, data: value ? JSON.parse(value) : null }
+      } catch (e: any) {
+        console.error('LocalStorage Get Error:', e)
+        return { success: false, error: e.message }
+      }
+    },
+    set: async (key: string, value: any) => {
+      try {
+        console.log(`[Storage] SET ${key}:`, value)
+        localStorage.setItem(`andb_${key}`, JSON.stringify(value))
+        return { success: true }
+      } catch (e: any) {
+        console.error('LocalStorage Set Error:', e)
+        return { success: false, error: e.message }
+      }
+    },
+    delete: async (key: string) => {
+      localStorage.removeItem(`andb_${key}`)
+      return { success: true }
+    },
+    has: async (key: string) => {
+      return { success: true, data: localStorage.getItem(`andb_${key}`) !== null }
+    },
+    clear: async () => {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('andb_')) localStorage.removeItem(k)
+      })
+      return { success: true }
+    }
   }
 }
 
 export const storage = {
+  // Helper for strict deduplication
+  _deduplicateConnections(connections: DatabaseConnection[]): DatabaseConnection[] {
+    const seen = new Set<string>()
+    return connections.filter(conn => {
+      // Create a unique hash for the connection content
+      // Note: We ignore 'id' for the hash to find semantic duplicates
+      // We normalize strings to lowercase/trimmed to be safe
+      const key = [
+        conn.name,
+        conn.host,
+        conn.port,
+        conn.database,
+        conn.username,
+        conn.environment
+      ].map(v => String(v || '').trim().toLowerCase()).join('|')
+
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  },
+
   // ==================== Connections ====================
   async getConnections(): Promise<DatabaseConnection[]> {
     const result = await getStorage().get('connections')
-    return result.success ? (result.data || []) : []
+    const raw = result.success ? (result.data || []) : []
+    return this._deduplicateConnections(raw)
   },
 
   async saveConnections(connections: DatabaseConnection[]): Promise<void> {
-    await getStorage().set('connections', JSON.parse(JSON.stringify(connections)))
+    const clean = this._deduplicateConnections(connections)
+    await getStorage().set('connections', JSON.parse(JSON.stringify(clean)))
   },
 
   async addConnection(connection: DatabaseConnection): Promise<void> {

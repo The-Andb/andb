@@ -245,7 +245,7 @@ export class Andb {
     if (!isElectron) return false
     try {
       const result = await window.electronAPI.andbClearConnectionData(this.sanitize(connection))
-      return result.success ? result.data : false
+      return (result as any).success ? (result as any).data : false
     } catch (error) {
       return false
     }

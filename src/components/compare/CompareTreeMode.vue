@@ -191,6 +191,7 @@ const props = defineProps<{
   sourceName: string
   targetName: string
   activeType: string
+  targetIsStatic?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -315,6 +316,7 @@ const handleMigrateClick = (item: any) => {
 }
 
 const canMigrate = (item: any) => {
+  if (props.targetIsStatic) return false
   const s = item.status?.toLowerCase()
   return s !== 'equal' && s !== 'same'
 }

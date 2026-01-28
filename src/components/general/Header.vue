@@ -86,7 +86,7 @@
             >
               <option value="" disabled>{{ $t('header.selectDatabase') }}</option>
               <option v-for="conn in appStore.filteredConnections" :key="conn.id" :value="conn.id" class="bg-white dark:bg-gray-800">
-                {{ conn.environment }}: {{ conn.database }}
+                {{ conn.environment }}: {{ conn.database || conn.name }}
               </option>
             </select>
           </div>
@@ -351,7 +351,7 @@ const selectedProjectModel = computed({
        })
        projectsStore.selectProject(newProject.id)
     } else {
-      projectsStore.selectedProjectId = val
+      projectsStore.selectProject(val)
     }
   }
 })

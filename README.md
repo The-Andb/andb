@@ -1,6 +1,6 @@
-# andb-ui
+# The Andb UI
 
-Desktop application for andb-core database migration tool using Electron + Vue.js
+**The Intelligent Database Orchestrator** — Desktop application for seamless schema visualization, comparison, and synchronization.
 
 ## 🚀 Features
 
@@ -31,10 +31,10 @@ Desktop application for andb-core database migration tool using Electron + Vue.j
 
 ## 📥 Download
 
-Latest Release: **v2.2.1**
+Latest Release: **v2.3.0**
 
-- **macOS (Apple Silicon)**: [The-Andb-2.2.1-arm64.dmg](https://github.com/The-Andb/andb/releases/download/v2.2.1/The-Andb-2.2.1-arm64.dmg)
-- **macOS (Portable ZIP)**: [The-Andb-2.2.1-arm64-mac.zip](https://github.com/The-Andb/andb/releases/download/v2.2.1/The-Andb-2.2.1-arm64-mac.zip)
+- **macOS (Apple Silicon)**: [The-Andb-2.3.0-arm64.dmg](https://github.com/The-Andb/andb/releases/download/v2.3.0/The-Andb-2.3.0-arm64.dmg)
+- **macOS (Portable ZIP)**: [The-Andb-2.3.0-mac.zip](https://github.com/The-Andb/andb/releases/download/v2.3.0/The-Andb-2.3.0-mac.zip)
 - [All Releases](https://github.com/The-Andb/andb/releases)
 
 ## 📦 Installation
@@ -181,7 +181,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [andb-core](https://github.com/ph4n4n/andb-core) - Database migration tool
+- [@the-andb/core](https://github.com/The-Andb/andb-core) - Database orchestration engine
 - [Vue.js](https://vuejs.org/) - Progressive JavaScript framework
 - [Electron](https://www.electronjs.org/) - Cross-platform desktop apps
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework

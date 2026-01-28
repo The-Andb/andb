@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import Andb from '@/utils/andb'
 
 
@@ -62,6 +62,44 @@ export const useSidebarStore = defineStore('sidebar', () => {
     environments.value = data
   }
 
+
+  // Persistence Logic
+  const STORAGE_KEY = 'andb-sidebar-cache'
+
+  function loadFromStorage() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const data = JSON.parse(stored)
+        // Only restore environments
+        if (data.environments) {
+          environments.value = data.environments
+          lastFetchTime.value = data.lastFetchTime || 0
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load sidebar cache')
+    }
+  }
+
+  function saveToStorage() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        environments: environments.value,
+        lastFetchTime: lastFetchTime.value
+      }))
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  // Watch to save
+  watch(environments, () => {
+    saveToStorage()
+  }, { deep: true })
+
+  // Initial load
+  loadFromStorage()
 
   return {
     refreshKey,

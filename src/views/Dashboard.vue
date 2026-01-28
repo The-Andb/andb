@@ -82,7 +82,10 @@
       <div class="max-w-7xl mx-auto">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <!-- Total Connections -->
-          <div class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-blue-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300">
+          <div 
+            @click="navigateTo('/project-settings')"
+            class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-blue-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300 cursor-pointer active:scale-[0.98]"
+          >
             <div class="flex items-center justify-between mb-4">
               <div class="p-3 bg-blue-500/10 text-blue-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <Database class="w-6 h-6" />
@@ -104,7 +107,10 @@
           </div>
 
           <!-- Environments -->
-          <div class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300">
+          <div 
+            @click="navigateTo('/project-settings')"
+            class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300 cursor-pointer active:scale-[0.98]"
+          >
             <div class="flex items-center justify-between mb-4">
               <div class="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <Layers class="w-6 h-6" />
@@ -123,7 +129,10 @@
           </div>
 
           <!-- Connection Pairs -->
-          <div class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-purple-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300">
+          <div 
+            @click="navigateTo('/settings')"
+            class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-purple-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300 cursor-pointer active:scale-[0.98]"
+          >
             <div class="flex items-center justify-between mb-4">
               <div class="p-3 bg-purple-500/10 text-purple-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <GitCompare class="w-6 h-6" />
@@ -144,7 +153,10 @@
           </div>
 
           <!-- Recent Operations -->
-          <div class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-orange-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300">
+          <div 
+            @click="navigateTo('/history')"
+            class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-orange-500/10 p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300 cursor-pointer active:scale-[0.98]"
+          >
             <div class="flex items-center justify-between mb-4">
               <div class="p-3 bg-orange-500/10 text-orange-500 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <Activity class="w-6 h-6" />

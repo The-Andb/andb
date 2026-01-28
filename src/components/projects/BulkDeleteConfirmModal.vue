@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { X, Trash2, AlertTriangle, Check } from 'lucide-vue-next'
+import { Trash2, AlertTriangle, Check } from 'lucide-vue-next'
 
 const props = defineProps<{
   isOpen: boolean

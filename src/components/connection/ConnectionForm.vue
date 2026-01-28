@@ -337,6 +337,7 @@
     <!-- Actions -->
     <div class="flex items-center justify-between pt-8 border-t border-gray-100 dark:border-gray-800 shrink-0">
       <button
+        v-if="form.type !== 'dump'"
         @click="testConnection"
         :disabled="isTesting || !isFormValid"
         class="flex items-center justify-center px-6 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-primary-500 hover:text-primary-500 transition-all active:scale-95 disabled:opacity-50"
@@ -345,6 +346,7 @@
         <Loader v-else class="w-4 h-4 mr-2 animate-spin" />
         {{ isTesting ? $t('connections.testing') : $t('connections.test') }}
       </button>
+      <div v-else></div>
 
       <div class="flex items-center gap-4">
         <button
@@ -541,24 +543,26 @@ const validateForm = () => {
     errors.value.name = $t('validation.required', { field: $t('connections.connectionName') })
   }
   
-  if (!form.value.host.trim()) {
-    errors.value.host = $t('validation.required', { field: $t('connections.host') })
-  }
-  
-  if (!form.value.port || form.value.port < 1 || form.value.port > 65535) {
-    errors.value.port = $t('validation.invalidPort')
-  }
-  
-  if (!form.value.database.trim()) {
-    errors.value.database = $t('validation.required', { field: $t('connections.database') })
-  }
-  
-  if (form.value.type !== 'dump' && !form.value.username.trim()) {
-    errors.value.username = $t('validation.required', { field: $t('connections.username') })
-  }
-
-  if (form.value.type === 'dump' && !form.value.host.trim()) {
-    errors.value.host = $t('validation.required', { field: $t('connections.dumpPath') })
+  if (form.value.type === 'dump') {
+    if (!form.value.host.trim()) {
+      errors.value.host = $t('validation.required', { field: $t('connections.dumpPath') })
+    }
+  } else {
+    if (!form.value.host.trim()) {
+      errors.value.host = $t('validation.required', { field: $t('connections.host') })
+    }
+    
+    if (!form.value.port || form.value.port < 1 || form.value.port > 65535) {
+      errors.value.port = $t('validation.invalidPort')
+    }
+    
+    if (!form.value.database.trim()) {
+      errors.value.database = $t('validation.required', { field: $t('connections.database') })
+    }
+    
+    if (!form.value.username.trim()) {
+      errors.value.username = $t('validation.required', { field: $t('connections.username') })
+    }
   }
   
   if (!form.value.environment) {

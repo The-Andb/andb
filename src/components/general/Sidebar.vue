@@ -186,7 +186,7 @@
                     />
                   </span>
                   <Database class="w-3.5 h-3.5 mr-2 text-amber-600 dark:text-amber-500" />
-                  <span class="truncate flex-1">{{ db.name }}</span>
+                  <span class="truncate flex-1">{{ getDatabaseDisplayName(db) }}</span>
 
                   <!-- Fast Refresh Action -->
                   <button 
@@ -425,7 +425,7 @@ const filteredEnvironments = computed(() => {
   let envs = environments.value
   
   if (route.path === '/compare' && activePair.value?.sourceEnv) {
-    envs = environments.value.filter(env => env.name === activePair.value?.sourceEnv)
+    envs = environments.value.filter(env => env.name.toUpperCase() === activePair.value?.sourceEnv?.toUpperCase())
   }
 
   // Use the order from connectionPairsStore.environments
@@ -637,6 +637,13 @@ const refreshObject = (env: string, db: string, type: string, name: string) => {
   window.dispatchEvent(new CustomEvent('object-refresh-requested', { detail: { env, db, type, name } }))
 }
 
+const getDatabaseDisplayName = (db: any) => {
+  const conn = appStore.getConnectionById(db.connectionId)
+  if (!conn) return db.name
+  if (conn.type === 'dump') return conn.name
+  return db.name || conn.name
+}
+
 const refreshSchemas = async (force = false) => {
   try {
     const result = await sidebarStore.loadSchemas(force)
@@ -670,13 +677,55 @@ const refreshSchemas = async (force = false) => {
     
     // 2. Merge with results from SQLite - ONLY for connections in the current project
     if (result && Array.isArray(result)) {
+      console.log('[Sidebar] Processing Schema Result:', { 
+         totalEnvs: result.length, 
+         connsCount: conns.length,
+         conns: conns.map(c => ({ id: c.id, name: c.name, db: c.database, type: c.type, env: c.environment }))
+      })
+
       result.forEach((remoteEnv: any) => {
         remoteEnv.databases.forEach((remoteDb: any) => {
           // Find matching connection in current project scope
-          const projectConn = conns.find(c => 
-            c.environment.toLowerCase() === remoteEnv.name.toLowerCase() && 
-            c.database.toLowerCase() === remoteDb.name.toLowerCase()
-          )
+          // Improved Logic:
+          // 1. Can we match by Connection ID if available in remoteEnv? (Usually remote only has name/db)
+          // 2. Normalize and check empty DB names for Dump files
+          
+          const projectConn = conns.find(c => {
+             const envMatch = c.environment.toLowerCase() === remoteEnv.name.toLowerCase()
+             
+             // 1. Strict ID Match (if remoteDb has connectionId, which it often doesn't from backend, but let's check)
+             if (remoteDb.connectionId && c.id === remoteDb.connectionId) return true;
+
+             // 2. Dump File Logic:
+             // Dump connections can have empty database names or names like 'demo_source'.
+             // We relax the check: if connection is Dump type and environment matches, we assume it's the one (since we project-scope queries usually)
+             
+             if (c.type === 'dump' && envMatch) {
+                // If remoteDb key provided host/path, use it!
+                // Inspecting keys during dev to confirm availability
+                if ((remoteDb as any).host && c.host) {
+                   // Compare normalized paths
+                   return (remoteDb as any).host.trim() === c.host.trim()
+                }
+
+                // Fallback: If remoteDb.name is empty OR matches cached name OR matches connection name
+                const cDbName = (c.database || '').toLowerCase()
+                const cName = c.name.toLowerCase()
+                const rDbName = (remoteDb.name || '').toLowerCase()
+                
+                const isMatch = cDbName === rDbName || rDbName === '' || cName === rDbName
+                
+                if (isMatch) console.log('[Sidebar] Dump Match Found (Weak):', { cName: c.name, rDbName, cHost: c.host })
+                return isMatch
+             }
+
+             // 3. Standard Logic
+             return envMatch && c.database.toLowerCase() === remoteDb.name.toLowerCase()
+          })
+          
+          if (!projectConn) {
+             console.warn('[Sidebar] Unmatched Schema:', remoteEnv.name, remoteDb.name)
+          }
 
           if (projectConn) {
             let localEnv = envMap.get(remoteEnv.name)
@@ -685,10 +734,27 @@ const refreshSchemas = async (force = false) => {
                envMap.set(remoteEnv.name, localEnv)
             }
             
-            let localDb = localEnv.databases.find((db: any) => db.name === remoteDb.name)
+            let localDb = localEnv.databases.find((db: any) => 
+               db.name === remoteDb.name || 
+               (db.connectionId === projectConn.id) ||
+               (db.name.toLowerCase() === remoteDb.name.toLowerCase())
+            )
+            
+            // Critical Fix: If localDb exists (created from config), merge data.
+            // If it doesn't exist (unexpected), create it.
+            
             if (localDb) {
               // Found configured connection, merge actual counts/data
-              Object.assign(localDb, remoteDb)
+              // Use Object.assign to update reactive object in place
+              Object.assign(localDb, {
+                 tables: remoteDb.tables,
+                 views: remoteDb.views,
+                 procedures: remoteDb.procedures,
+                 functions: remoteDb.functions,
+                 triggers: remoteDb.triggers,
+                 totalCount: remoteDb.totalCount || 0
+                 // Do NOT overwrite name or connectionId as local config is source of truth
+              })
             } else {
               // Should have been created in Step 1, but added here for safety
               localEnv.databases.push({ ...remoteDb, connectionId: projectConn.id })
@@ -719,7 +785,7 @@ watch(activePair, (newPair) => {
 }, { immediate: true })
 
 watch(() => appStore.connections, () => {
-  refreshSchemas(true)
+  refreshSchemas(false) // Use cache if available, don't force re-parse
 }, { deep: true })
 
 watch(() => sidebarStore.refreshKey, () => {
